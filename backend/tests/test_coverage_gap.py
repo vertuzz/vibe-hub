@@ -10,8 +10,10 @@ async def test_vibes_filtering_and_errors(client: AsyncClient, auth_headers: dic
     tag_resp = await client.post("/tags/", json={"name": "UI"})
     tag_id = tag_resp.json()["id"]
 
-    v1 = await client.post("/vibes/", json={"prompt_text": "V1", "tool_ids": [tool_id], "status": "Concept"}, headers=auth_headers).json()
-    v2 = await client.post("/vibes/", json={"prompt_text": "V2", "tag_ids": [tag_id], "status": "WIP"}, headers=auth_headers).json()
+    v1_resp = await client.post("/vibes/", json={"prompt_text": "V1", "tool_ids": [tool_id], "status": "Concept"}, headers=auth_headers)
+    v1 = v1_resp.json()
+    v2_resp = await client.post("/vibes/", json={"prompt_text": "V2", "tag_ids": [tag_id], "status": "WIP"}, headers=auth_headers)
+    v2 = v2_resp.json()
 
     # 1. Filter by tool
     resp = await client.get(f"/vibes/?tool_id={tool_id}")
@@ -41,7 +43,8 @@ async def test_vibes_filtering_and_errors(client: AsyncClient, auth_headers: dic
     # Login as other to create a vibe
     login_resp = await client.post("/auth/login", data={"username": "other", "password": "p"})
     other_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
-    other_vibe = await client.post("/vibes/", json={"prompt_text": "Other Vibe"}, headers=other_headers).json()
+    other_vibe_resp = await client.post("/vibes/", json={"prompt_text": "Other Vibe"}, headers=other_headers)
+    other_vibe = other_vibe_resp.json()
 
     # Try to update other_vibe with original auth_headers
     resp = await client.patch(f"/vibes/{other_vibe['id']}", json={"prompt_text": "hacked"}, headers=auth_headers)
@@ -71,7 +74,8 @@ async def test_vibes_filtering_and_errors(client: AsyncClient, auth_headers: dic
 @pytest.mark.asyncio
 async def test_likes_errors_and_unlikes(client: AsyncClient, auth_headers: dict):
     # Setup vibe
-    vibe = await client.post("/vibes/", json={"prompt_text": "Like Me"}, headers=auth_headers).json()
+    vibe_resp = await client.post("/vibes/", json={"prompt_text": "Like Me"}, headers=auth_headers)
+    vibe = vibe_resp.json()
     vibe_id = vibe["id"]
 
     # 1. Like vibe
@@ -91,7 +95,8 @@ async def test_likes_errors_and_unlikes(client: AsyncClient, auth_headers: dict)
     assert resp.status_code == 404
 
     # 5. Like comment
-    comm = await client.post(f"/vibes/{vibe_id}/comments", json={"content": "Liking this"}, headers=auth_headers).json()
+    comm_resp = await client.post(f"/vibes/{vibe_id}/comments", json={"content": "Liking this"}, headers=auth_headers)
+    comm = comm_resp.json()
     comm_id = comm["id"]
     resp = await client.post(f"/comments/{comm_id}/like", headers=auth_headers)
     assert resp.status_code == 200
@@ -114,7 +119,8 @@ async def test_notifications_read(client: AsyncClient, auth_headers: dict):
     victim_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
     
     # Victim creates a vibe
-    vibe = await client.post("/vibes/", json={"prompt_text": "Notify me"}, headers=victim_headers).json()
+    vibe_resp = await client.post("/vibes/", json={"prompt_text": "Notify me"}, headers=victim_headers)
+    vibe = vibe_resp.json()
 
     # 2. Origin user (auth_headers) likes victim's vibe
     client.post(f"/vibes/{vibe['id']}/like", headers= awaitauth_headers)
@@ -139,7 +145,8 @@ async def test_notifications_read(client: AsyncClient, auth_headers: dict):
 
 @pytest.mark.asyncio
 async def test_reviews_and_comments_errors(client: AsyncClient, auth_headers: dict):
-    vibe = await client.post("/vibes/", json={"prompt_text": "Err Vibe"}, headers=auth_headers).json()
+    vibe_resp = await client.post("/vibes/", json={"prompt_text": "Err Vibe"}, headers=auth_headers)
+    vibe = vibe_resp.json()
     vibe_id = vibe["id"]
 
     # 1. Comment not found
@@ -150,7 +157,8 @@ async def test_reviews_and_comments_errors(client: AsyncClient, auth_headers: di
     client.post("/auth/register", json= await{"username": "comm_owner", "email": "co@v.com", "password": "p"})
     login_resp = await client.post("/auth/login", data={"username": "comm_owner", "password": "p"})
     co_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
-    comm = await client.post(f"/vibes/{vibe_id}/comments", json={"content": "Mine"}, headers=co_headers).json()
+    comm_resp = await client.post(f"/vibes/{vibe_id}/comments", json={"content": "Mine"}, headers=co_headers)
+    comm = comm_resp.json()
 
     assert client.patch(f"/comments/{comm['id']}", json= await{"content": "hacked"}, headers=auth_headers).status_code == 403
 
@@ -173,15 +181,18 @@ async def test_reviews_and_comments_errors(client: AsyncClient, auth_headers: di
     assert resp.status_code == 404
 
     # 7. Error: Delete others' comment
-    comm2 = await client.post(f"/vibes/{vibe_id}/comments", json={"content": "Another"}, headers=auth_headers).json()
+    comm2_resp = await client.post(f"/vibes/{vibe_id}/comments", json={"content": "Another"}, headers=auth_headers)
+    comm2 = comm2_resp.json()
     assert client.delete(f"/comments/{comm2['id']}", headers= awaitco_headers).status_code == 403
 
 @pytest.mark.asyncio
 async def test_collections_edge_cases(client: AsyncClient, auth_headers: dict):
-    vibe = await client.post("/vibes/", json={"prompt_text": "In Col"}, headers=auth_headers).json()
+    vibe_resp = await client.post("/vibes/", json={"prompt_text": "In Col"}, headers=auth_headers)
+    vibe = vibe_resp.json()
     
     # 1. Create collection
-    col = await client.post("/collections/", json={"name": "My Pack", "vibe_ids": [vibe["id"]]}, headers=auth_headers).json()
+    col_resp = await client.post("/collections/", json={"name": "My Pack", "vibe_ids": [vibe["id"]]}, headers=auth_headers)
+    col = col_resp.json()
     
     # 2. Add non-existent vibe to collection
     resp = await client.post(f"/collections/{col['id']}/vibes/9999", headers=auth_headers)
@@ -200,17 +211,20 @@ async def test_collections_edge_cases(client: AsyncClient, auth_headers: dict):
     assert resp.status_code == 404 # It returns 404 because query filters by owner_id
 
     # 5. Get private collection
-    priv_col = await client.post("/collections/", json={"name": "Secret", "is_public": False}, headers=auth_headers).json()
+    priv_col_resp = await client.post("/collections/", json={"name": "Secret", "is_public": False}, headers=auth_headers)
+    priv_col = priv_col_resp.json()
     resp = await client.get(f"/collections/{priv_col['id']}")
     assert resp.status_code == 200 # Current implementation doesn't block access if not public (line 39-40 in collections.py)
 
 @pytest.mark.asyncio
 async def test_reviews_comprehensive(client: AsyncClient, auth_headers: dict):
-    vibe = await client.post("/vibes/", json={"prompt_text": "Review Hub"}, headers=auth_headers).json()
+    vibe_resp = await client.post("/vibes/", json={"prompt_text": "Review Hub"}, headers=auth_headers)
+    vibe = vibe_resp.json()
     vibe_id = vibe["id"]
 
     # 1. Create review
-    review = await client.post(f"/vibes/{vibe_id}/reviews", json={"score": 90, "comment": "Good"}, headers=auth_headers).json()
+    review_resp = await client.post(f"/vibes/{vibe_id}/reviews", json={"score": 90, "comment": "Good"}, headers=auth_headers)
+    review = review_resp.json()
     
     # 2. Duplicate review
     resp = await client.post(f"/vibes/{vibe_id}/reviews", json={"score": 80}, headers=auth_headers)
@@ -233,7 +247,8 @@ async def test_reviews_comprehensive(client: AsyncClient, auth_headers: dict):
 @pytest.mark.asyncio
 async def test_follows_and_impls_edge_cases(client: AsyncClient, auth_headers: dict):
     # Setup
-    me = await client.get("/auth/me", headers=auth_headers).json()
+    me_resp = await client.get("/auth/me", headers=auth_headers)
+    me = me_resp.json()
     
     # 1. Follow self
     resp = await client.post(f"/users/{me['id']}/follow", headers=auth_headers)
@@ -244,10 +259,12 @@ async def test_follows_and_impls_edge_cases(client: AsyncClient, auth_headers: d
 
     # 3. Already following
     client.post("/auth/register", json= await{"username": "star", "email": "s@v.com", "password": "p"})
-    star = await client.post("/auth/login", data={"username": "star", "password": "p"}).json()
+    star_resp = await client.post("/auth/login", data={"username": "star", "password": "p"})
+    star = star_resp.json()
     star_id = 4 # Incremental
     # Let's get actual ID
-    star_info = await client.get("/auth/me", headers={"Authorization": f"Bearer {star['access_token']}"}).json()
+    star_info_resp = await client.get("/auth/me", headers={"Authorization": f"Bearer {star['access_token']}"})
+    star_info = star_info_resp.json()
     star_id = star_info["id"]
 
     client.post(f"/users/{star_id}/follow", headers= awaitauth_headers)
@@ -263,10 +280,12 @@ async def test_follows_and_impls_edge_cases(client: AsyncClient, auth_headers: d
     assert client.patch("/implementations/9999/official", headers= awaitauth_headers).status_code == 404
 
     # 7. Mark official - Unauthorized
-    vibe = await client.post("/vibes/", json={"prompt_text": "Official Vibe"}, headers=auth_headers).json()
+    vibe_resp = await client.post("/vibes/", json={"prompt_text": "Official Vibe"}, headers=auth_headers)
+    vibe = vibe_resp.json()
     # Someone else implements it
     other_headers = {"Authorization": f"Bearer {star['access_token']}"}
-    impl = await client.post(f"/vibes/{vibe['id']}/implementations", json={"url": "http://impl.com"}, headers=other_headers).json()
+    impl_resp = await client.post(f"/vibes/{vibe['id']}/implementations", json={"url": "http://impl.com"}, headers=other_headers)
+    impl = impl_resp.json()
     
     # Other user tries to mark it official (only vibe creator can)
     resp = await client.patch(f"/implementations/{impl['id']}/official", headers=other_headers)
