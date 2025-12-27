@@ -37,7 +37,7 @@ async def test_social_graph_and_notifications(client: AsyncClient):
     
     # Mark read
     notif_id = notif_resp.json()[0]["id"]
-    await client.patch(f"/notifications/{notif_id}/read", headers= awaitheadersB)
+    await client.patch(f"/notifications/{notif_id}/read", headers= headersB)
     
     # 6. User A unfollows User B
     unfollow_resp = await client.delete(f"/users/{idB}/follow", headers=headersA)
