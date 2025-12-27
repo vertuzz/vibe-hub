@@ -14,6 +14,16 @@ class Settings(BaseSettings):
     
     DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/vibehub")
     
+    @property
+    def async_database_url(self) -> str:
+        """Convert DATABASE_URL to async driver format."""
+        url = self.DATABASE_URL
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        elif url.startswith("sqlite://"):
+            return url.replace("sqlite://", "sqlite+aiosqlite://", 1)
+        return url
+    
     # Cloudinary Settings
     CLOUDINARY_CLOUD_NAME: Optional[str] = os.getenv("CLOUDINARY_CLOUD_NAME")
     CLOUDINARY_API_KEY: Optional[str] = os.getenv("CLOUDINARY_API_KEY")

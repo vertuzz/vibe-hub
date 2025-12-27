@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, desc
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
 from app.database import get_db
@@ -11,7 +12,7 @@ from app.routers.auth import get_current_user
 router = APIRouter()
 
 @router.get("/", response_model=List[schemas.Vibe])
-def get_vibes(
+async def get_vibes(
     skip: int = 0,
     limit: int = 20,
     tool_id: Optional[int] = None,
@@ -21,9 +22,9 @@ def get_vibes(
     search: Optional[str] = None,
     status: Optional[VibeStatus] = None,
     sort_by: str = Query("created_at", enum=["created_at", "score", "likes"]),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    query = db.query(Vibe)
+    query = select(Vibe).options(selectinload(Vibe.tools), selectinload(Vibe.tags))
     
     if tool_id:
         query = query.join(Vibe.tools).filter(Tool.id == tool_id)
@@ -58,13 +59,15 @@ def get_vibes(
         query = query.order_by(desc(Vibe.created_at))
     # Note: sorting by score/likes would require joins or counter caches
         
-    return query.offset(skip).limit(limit).all()
+    query = query.offset(skip).limit(limit)
+    result = await db.execute(query)
+    return result.scalars().all()
 
 @router.post("/", response_model=schemas.Vibe)
-def create_vibe(
+async def create_vibe(
     vibe_in: schemas.VibeCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     db_vibe = Vibe(
         creator_id=current_user.id,
@@ -77,32 +80,36 @@ def create_vibe(
     
     # Add tools and tags
     if vibe_in.tool_ids:
-        tools = db.query(Tool).filter(Tool.id.in_(vibe_in.tool_ids)).all()
+        result = await db.execute(select(Tool).filter(Tool.id.in_(vibe_in.tool_ids)))
+        tools = result.scalars().all()
         db_vibe.tools = tools
     if vibe_in.tag_ids:
-        tags = db.query(Tag).filter(Tag.id.in_(vibe_in.tag_ids)).all()
+        result = await db.execute(select(Tag).filter(Tag.id.in_(vibe_in.tag_ids)))
+        tags = result.scalars().all()
         db_vibe.tags = tags
         
     db.add(db_vibe)
-    db.commit()
-    db.refresh(db_vibe)
+    await db.commit()
+    await db.refresh(db_vibe)
     return db_vibe
 
 @router.get("/{vibe_id}", response_model=schemas.Vibe)
-def get_vibe(vibe_id: int, db: Session = Depends(get_db)):
-    vibe = db.query(Vibe).filter(Vibe.id == vibe_id).first()
+async def get_vibe(vibe_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Vibe).filter(Vibe.id == vibe_id))
+    vibe = result.scalars().first()
     if not vibe:
         raise HTTPException(status_code=404, detail="Vibe not found")
     return vibe
 
 @router.patch("/{vibe_id}", response_model=schemas.Vibe)
-def update_vibe(
+async def update_vibe(
     vibe_id: int,
     vibe_in: schemas.VibeUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    db_vibe = db.query(Vibe).filter(Vibe.id == vibe_id).first()
+    result = await db.execute(select(Vibe).filter(Vibe.id == vibe_id))
+    db_vibe = result.scalars().first()
     if not db_vibe:
         raise HTTPException(status_code=404, detail="Vibe not found")
     if db_vibe.creator_id != current_user.id:
@@ -113,17 +120,22 @@ def update_vibe(
         setattr(db_vibe, field, value)
     
     db.add(db_vibe)
-    db.commit()
-    db.refresh(db_vibe)
+    await db.commit()
+    await db.refresh(db_vibe)
     return db_vibe
 
 @router.post("/{vibe_id}/fork", response_model=schemas.Vibe)
-def fork_vibe(
+async def fork_vibe(
     vibe_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    parent_vibe = db.query(Vibe).filter(Vibe.id == vibe_id).first()
+    result = await db.execute(
+        select(Vibe)
+        .options(selectinload(Vibe.tools), selectinload(Vibe.tags))
+        .filter(Vibe.id == vibe_id)
+    )
+    parent_vibe = result.scalars().first()
     if not parent_vibe:
         raise HTTPException(status_code=404, detail="Parent vibe not found")
     
@@ -142,23 +154,24 @@ def fork_vibe(
     db_vibe.tags = parent_vibe.tags
     
     db.add(db_vibe)
-    db.commit()
-    db.refresh(db_vibe)
+    await db.commit()
+    await db.refresh(db_vibe)
     return db_vibe
 
 @router.post("/{vibe_id}/images", response_model=schemas.VibeImage)
-def add_vibe_image(
+async def add_vibe_image(
     vibe_id: int,
     image_in: schemas.VibeImageBase,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    db_vibe = db.query(Vibe).filter(Vibe.id == vibe_id).first()
+    result = await db.execute(select(Vibe).filter(Vibe.id == vibe_id))
+    db_vibe = result.scalars().first()
     if not db_vibe or db_vibe.creator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     db_image = VibeImage(**image_in.model_dump(), vibe_id=vibe_id)
     db.add(db_image)
-    db.commit()
-    db.refresh(db_image)
+    await db.commit()
+    await db.refresh(db_image)
     return db_image

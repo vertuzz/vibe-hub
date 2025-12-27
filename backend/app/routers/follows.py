@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from typing import List
 
@@ -10,15 +11,16 @@ from app.routers.auth import get_current_user
 router = APIRouter()
 
 @router.post("/{user_id}/follow")
-def follow_user(
+async def follow_user(
     user_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot follow yourself")
         
-    target = db.query(User).filter(User.id == user_id).first()
+    result = await db.execute(select(User).filter(User.id == user_id))
+    target = result.scalars().first()
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
         
@@ -26,26 +28,29 @@ def follow_user(
     db.add(db_follow)
     
     try:
-        db.commit()
+        await db.commit()
     except IntegrityError:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=400, detail="Already following")
         
     return {"message": f"Following {target.username}"}
 
 @router.delete("/{user_id}/follow")
-def unfollow_user(
+async def unfollow_user(
     user_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    db_follow = db.query(Follow).filter(
-        Follow.follower_id == current_user.id,
-        Follow.followed_id == user_id
-    ).first()
+    result = await db.execute(
+        select(Follow).filter(
+            Follow.follower_id == current_user.id,
+            Follow.followed_id == user_id
+        )
+    )
+    db_follow = result.scalars().first()
     if not db_follow:
         raise HTTPException(status_code=404, detail="Not following this user")
         
-    db.delete(db_follow)
-    db.commit()
+    await db.delete(db_follow)
+    await db.commit()
     return {"message": "Unfollowed"}

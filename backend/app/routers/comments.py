@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from typing import List
 
 from app.database import get_db
@@ -10,17 +11,19 @@ from app.routers.auth import get_current_user
 router = APIRouter()
 
 @router.get("/vibes/{vibe_id}/comments", response_model=List[schemas.Comment])
-def get_vibe_comments(vibe_id: int, db: Session = Depends(get_db)):
-    return db.query(Comment).filter(Comment.vibe_id == vibe_id).all()
+async def get_vibe_comments(vibe_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Comment).filter(Comment.vibe_id == vibe_id))
+    return result.scalars().all()
 
 @router.post("/vibes/{vibe_id}/comments", response_model=schemas.Comment)
-def create_comment(
+async def create_comment(
     vibe_id: int,
     comment_in: schemas.CommentCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    vibe = db.query(Vibe).filter(Vibe.id == vibe_id).first()
+    result = await db.execute(select(Vibe).filter(Vibe.id == vibe_id))
+    vibe = result.scalars().first()
     if not vibe:
         raise HTTPException(status_code=404, detail="Vibe not found")
     
@@ -41,18 +44,19 @@ def create_comment(
         )
         db.add(notification)
         
-    db.commit()
-    db.refresh(db_comment)
+    await db.commit()
+    await db.refresh(db_comment)
     return db_comment
 
 @router.patch("/comments/{comment_id}", response_model=schemas.Comment)
-def update_comment(
+async def update_comment(
     comment_id: int,
     comment_in: schemas.CommentCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    db_comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    result = await db.execute(select(Comment).filter(Comment.id == comment_id))
+    db_comment = result.scalars().first()
     if not db_comment:
         raise HTTPException(status_code=404, detail="Comment not found")
     if db_comment.user_id != current_user.id:
@@ -60,22 +64,23 @@ def update_comment(
     
     db_comment.content = comment_in.content
     db.add(db_comment)
-    db.commit()
-    db.refresh(db_comment)
+    await db.commit()
+    await db.refresh(db_comment)
     return db_comment
 
 @router.delete("/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_comment(
+async def delete_comment(
     comment_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    db_comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    result = await db.execute(select(Comment).filter(Comment.id == comment_id))
+    db_comment = result.scalars().first()
     if not db_comment:
         raise HTTPException(status_code=404, detail="Comment not found")
     if db_comment.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    db.delete(db_comment)
-    db.commit()
+    await db.delete(db_comment)
+    await db.commit()
     return None
