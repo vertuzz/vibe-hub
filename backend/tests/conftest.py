@@ -1,8 +1,9 @@
 import pytest
-from fastapi.testclient import TestClient
+import pytest_asyncio
+from httpx import AsyncClient, ASGITransport
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import StaticPool, NullPool
 from dotenv import load_dotenv
 import os
 import sys
@@ -18,6 +19,14 @@ from app.database import get_db
 
 # Use environment variable for test DB or default to in-memory SQLite
 SQLALCHEMY_DATABASE_URL = os.getenv("TEST_DATABASE_URL", "sqlite://")
+
+# Convert to async URL
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite://"):
+    ASYNC_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("sqlite://", "sqlite+aiosqlite://", 1)
+elif SQLALCHEMY_DATABASE_URL.startswith("postgresql://"):
+    ASYNC_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+else:
+    ASYNC_DATABASE_URL = SQLALCHEMY_DATABASE_URL
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
@@ -58,47 +67,59 @@ def setup_test_db():
         conn.execute(text(f"DROP DATABASE IF EXISTS {db_name}"))
     admin_engine.dispose()
 
-@pytest.fixture(scope="function")
-def engine():
-    connect_args = {"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
-    engine = create_engine(
-        SQLALCHEMY_DATABASE_URL,
-        connect_args=connect_args,
-        poolclass=StaticPool if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else None,
-    )
-    # We still use drop_all/create_all for per-test isolation
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+@pytest_asyncio.fixture(scope="function")
+async def engine():
+    if ASYNC_DATABASE_URL.startswith("sqlite"):
+        engine = create_async_engine(
+            ASYNC_DATABASE_URL,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+    else:
+        engine = create_async_engine(
+            ASYNC_DATABASE_URL,
+            poolclass=NullPool,
+        )
+    
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+    
     yield engine
-    engine.dispose()
+    
+    await engine.dispose()
 
-@pytest.fixture(scope="function")
-def db_session(engine):
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    session = TestingSessionLocal()
-    yield session
-    session.close()
+@pytest_asyncio.fixture(scope="function")
+async def db_session(engine):
+    AsyncSessionLocal = async_sessionmaker(
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autocommit=False,
+        autoflush=False,
+    )
+    async with AsyncSessionLocal() as session:
+        yield session
 
-@pytest.fixture(scope="function")
-def client(db_session):
-    def override_get_db():
-        try:
-            yield db_session
-        finally:
-            pass
+@pytest_asyncio.fixture(scope="function")
+async def client(db_session):
+    async def override_get_db():
+        yield db_session
             
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as c:
-        yield c
+    
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        yield ac
+    
     app.dependency_overrides.clear()
 
-@pytest.fixture
-def auth_headers(client):
+@pytest_asyncio.fixture
+async def auth_headers(client):
     # Register and login a test user
     user_data = {"username": "testuser", "email": "test@example.com", "password": "password123"}
-    client.post("/auth/register", json=user_data)
+    await client.post("/auth/register", json=user_data)
     
     # Login manually via form data
-    response = client.post("/auth/login", data={"username": "testuser", "password": "password123"})
+    response = await client.post("/auth/login", data={"username": "testuser", "password": "password123"})
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}

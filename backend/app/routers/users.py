@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from typing import List
 
 from app.database import get_db
@@ -12,7 +13,9 @@ router = APIRouter()
 
 @router.get("/{user_id}", response_model=schemas.User)
 async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).filter(User.id == user_id))
+    result = await db.execute(
+        select(User).options(selectinload(User.links)).filter(User.id == user_id)
+    )
     user = result.scalars().first()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -34,8 +37,11 @@ async def update_user(
     
     db.add(current_user)
     await db.commit()
-    await db.refresh(current_user)
-    return current_user
+    # Reload with eager loading
+    result = await db.execute(
+        select(User).options(selectinload(User.links)).filter(User.id == current_user.id)
+    )
+    return result.scalars().first()
 
 @router.post("/{user_id}/links", response_model=schemas.UserLink)
 async def create_user_link(

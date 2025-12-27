@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from datetime import timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -33,7 +34,9 @@ async def get_current_user(db: AsyncSession = Depends(get_db), token: str = Depe
     except (JWTError, ValueError):
         raise credentials_exception
     
-    result = await db.execute(select(User).filter(User.id == user_id))
+    result = await db.execute(
+        select(User).options(selectinload(User.links)).filter(User.id == user_id)
+    )
     user = result.scalars().first()
     if user is None:
         raise credentials_exception
@@ -62,7 +65,11 @@ async def register(user_in: schemas.UserCreate, db: AsyncSession = Depends(get_d
     )
     db.add(db_user)
     await db.commit()
-    await db.refresh(db_user)
+    # Reload with eager loading for serialization
+    result = await db.execute(
+        select(User).options(selectinload(User.links)).filter(User.id == db_user.id)
+    )
+    db_user = result.scalars().first()
     return db_user
 
 @router.post("/login", response_model=schemas.Token)
@@ -126,10 +133,14 @@ async def google_login(request: schemas.SocialLoginRequest, db: AsyncSession = D
         name = user_info.get("name") or email.split("@")[0]
 
     # Find or create user
-    result = await db.execute(select(User).filter(User.google_id == google_id))
+    result = await db.execute(
+        select(User).options(selectinload(User.links)).filter(User.google_id == google_id)
+    )
     user = result.scalars().first()
     if not user:
-        result = await db.execute(select(User).filter(User.email == email))
+        result = await db.execute(
+            select(User).options(selectinload(User.links)).filter(User.email == email)
+        )
         user = result.scalars().first()
         if user:
             user.google_id = google_id
@@ -156,7 +167,11 @@ async def google_login(request: schemas.SocialLoginRequest, db: AsyncSession = D
             )
             db.add(user)
         await db.commit()
-        await db.refresh(user)
+        # Reload with eager loading
+        result = await db.execute(
+            select(User).options(selectinload(User.links)).filter(User.id == user.id)
+        )
+        user = result.scalars().first()
 
     access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
     jwt_token = security.create_access_token(
@@ -218,10 +233,14 @@ async def github_login(request: schemas.SocialLoginRequest, db: AsyncSession = D
                 raise HTTPException(status_code=400, detail="Failed to get GitHub user email")
 
     # Find or create user
-    result = await db.execute(select(User).filter(User.github_id == github_id))
+    result = await db.execute(
+        select(User).options(selectinload(User.links)).filter(User.github_id == github_id)
+    )
     user = result.scalars().first()
     if not user:
-        result = await db.execute(select(User).filter(User.email == email))
+        result = await db.execute(
+            select(User).options(selectinload(User.links)).filter(User.email == email)
+        )
         user = result.scalars().first()
         if user:
             user.github_id = github_id
@@ -248,7 +267,11 @@ async def github_login(request: schemas.SocialLoginRequest, db: AsyncSession = D
             )
             db.add(user)
         await db.commit()
-        await db.refresh(user)
+        # Reload with eager loading
+        result = await db.execute(
+            select(User).options(selectinload(User.links)).filter(User.id == user.id)
+        )
+        user = result.scalars().first()
 
     access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
     jwt_token = security.create_access_token(

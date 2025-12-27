@@ -24,7 +24,7 @@ async def get_vibes(
     sort_by: str = Query("created_at", enum=["created_at", "score", "likes"]),
     db: AsyncSession = Depends(get_db)
 ):
-    query = select(Vibe).options(selectinload(Vibe.tools), selectinload(Vibe.tags))
+    query = select(Vibe).options(selectinload(Vibe.tools), selectinload(Vibe.tags), selectinload(Vibe.images))
     
     if tool_id:
         query = query.join(Vibe.tools).filter(Tool.id == tool_id)
@@ -90,12 +90,21 @@ async def create_vibe(
         
     db.add(db_vibe)
     await db.commit()
-    await db.refresh(db_vibe)
-    return db_vibe
+    # Reload with eager loading
+    result = await db.execute(
+        select(Vibe)
+        .options(selectinload(Vibe.tools), selectinload(Vibe.tags), selectinload(Vibe.images))
+        .filter(Vibe.id == db_vibe.id)
+    )
+    return result.scalars().first()
 
 @router.get("/{vibe_id}", response_model=schemas.Vibe)
 async def get_vibe(vibe_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Vibe).filter(Vibe.id == vibe_id))
+    result = await db.execute(
+        select(Vibe)
+        .options(selectinload(Vibe.tools), selectinload(Vibe.tags), selectinload(Vibe.images))
+        .filter(Vibe.id == vibe_id)
+    )
     vibe = result.scalars().first()
     if not vibe:
         raise HTTPException(status_code=404, detail="Vibe not found")
@@ -108,7 +117,11 @@ async def update_vibe(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(select(Vibe).filter(Vibe.id == vibe_id))
+    result = await db.execute(
+        select(Vibe)
+        .options(selectinload(Vibe.tools), selectinload(Vibe.tags), selectinload(Vibe.images))
+        .filter(Vibe.id == vibe_id)
+    )
     db_vibe = result.scalars().first()
     if not db_vibe:
         raise HTTPException(status_code=404, detail="Vibe not found")
@@ -121,8 +134,13 @@ async def update_vibe(
     
     db.add(db_vibe)
     await db.commit()
-    await db.refresh(db_vibe)
-    return db_vibe
+    # Reload to ensure serialization works
+    result = await db.execute(
+        select(Vibe)
+        .options(selectinload(Vibe.tools), selectinload(Vibe.tags), selectinload(Vibe.images))
+        .filter(Vibe.id == db_vibe.id)
+    )
+    return result.scalars().first()
 
 @router.post("/{vibe_id}/fork", response_model=schemas.Vibe)
 async def fork_vibe(
@@ -155,8 +173,13 @@ async def fork_vibe(
     
     db.add(db_vibe)
     await db.commit()
-    await db.refresh(db_vibe)
-    return db_vibe
+    # Reload with eager loading
+    result = await db.execute(
+        select(Vibe)
+        .options(selectinload(Vibe.tools), selectinload(Vibe.tags), selectinload(Vibe.images))
+        .filter(Vibe.id == db_vibe.id)
+    )
+    return result.scalars().first()
 
 @router.post("/{vibe_id}/images", response_model=schemas.VibeImage)
 async def add_vibe_image(

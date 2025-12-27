@@ -2,7 +2,8 @@ import pytest
 from unittest.mock import patch
 from io import BytesIO
 
-def test_upload_image_success(client, auth_headers):
+@pytest.mark.asyncio
+async def test_upload_image_success(client, auth_headers):
     # Mock cloudinary.uploader.upload
     mock_response = {
         "secure_url": "https://res.cloudinary.com/demo/image/upload/v1234567890/sample.jpg",
@@ -14,7 +15,7 @@ def test_upload_image_success(client, auth_headers):
         file_content = b"fake image content"
         file = BytesIO(file_content)
         
-        response = client.post(
+        response = await client.post(
             "/media/upload",
             headers=auth_headers,
             files={"file": ("test.jpg", file, "image/jpeg")}
@@ -25,25 +26,27 @@ def test_upload_image_success(client, auth_headers):
         assert data["url"] == mock_response["secure_url"]
         assert data["public_id"] == mock_response["public_id"]
 
-def test_upload_image_unauthorized(client):
+@pytest.mark.asyncio
+async def test_upload_image_unauthorized(client):
     # Test upload without auth headers
     file_content = b"fake image content"
     file = BytesIO(file_content)
     
-    response = client.post(
+    response = await client.post(
         "/media/upload",
         files={"file": ("test.jpg", file, "image/jpeg")}
     )
     
     assert response.status_code == 401
 
-def test_upload_image_cloudinary_error(client, auth_headers):
+@pytest.mark.asyncio
+async def test_upload_image_cloudinary_error(client, auth_headers):
     # Mock cloudinary.uploader.upload to raise an exception
     with patch("cloudinary.uploader.upload", side_effect=Exception("Cloudinary error")):
         file_content = b"fake image content"
         file = BytesIO(file_content)
         
-        response = client.post(
+        response = await client.post(
             "/media/upload",
             headers=auth_headers,
             files={"file": ("test.jpg", file, "image/jpeg")}
