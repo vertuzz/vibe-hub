@@ -65,10 +65,10 @@
   - **By Status:** "Show me ideas that need a builder."
 
 ### 5.3. Interaction & Collaboration
-- **"Vibe Check" (Rating):** Instead of distinct upvotes, a "Vibe" slider (0-100%) or simple Fire/Ice emoji reaction.
+- **"Vibe Check" (Rating):** Instead of distinct upvotes, a "Vibe" slider (0-100%) or simple Fire/Ice emoji reaction. This allows users to evaluate the "vibe quality" on a quantitative scale.
+- **Comments & Remix Linking:** Users can post comments on a Vibe. Comments can include text and links to their own implementations (remixes) of the app. The OP can "Pin" the best implementation as the "Official Live Version."
 - **"Fork This Vibe" (Copy Prompt):** One-click button to copy the System Prompt to clipboard.
 - **"Claim Project":** A user can click "I'm building this." This links their profile to the post as a "Collaborator."
-- **Remix Linking:** Users can post comments that include a link to their version of the app. The OP can "Pin" the best implementation as the "Official Live Version."
 
 ---
 
@@ -83,15 +83,21 @@
 6. **User B** returns to VibeHub, comments the Vercel link.
 7. **User A** marks the Vercel link as the "Official Implementation."
 
-### 6.2. Data Model (Simplified Schema)
-- **Users:** `id`, `username`, `avatar`, `portfolio_links`, `reputation_score`
+### 6.2. Data Model (Schema)
+- **Users:** `id`, `username`, `email`, `avatar`, `portfolio_links`, `reputation_score`, `google_id`, `github_id`, `hashed_password`
+- **Tools:** `id`, `name` (e.g., Cursor, Replit, v0)
+- **VibeImages:** `id`, `vibe_id`, `image_url`
 - **Vibes (Posts):**
   - `id`, `creator_id`
-  - `image_url` (The visual hook)
-  - `prompt_text` (The "code")
+  - `images` (One or more visual hooks)
+  - `prompt_text` (The primary system prompt)
+  - `prd_text` (Optional PRD specification)
+  - `extra_specs` (Optional technical requirements or constraints)
   - `status` (Concept, WIP, Live)
   - `implementations` (Array of links to live versions)
-  - `tools_used` (Array of tags)
+  - `tools` (Normalized relationship to Tools used)
+- **Reviews (Vibe Checks):** `id`, `vibe_id`, `user_id`, `score` (0-100), `comment`, `created_at`
+- **Comments:** `id`, `vibe_id`, `user_id`, `content`, `created_at`
 
 ---
 
