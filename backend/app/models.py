@@ -2,6 +2,7 @@ import enum
 from datetime import datetime
 from typing import List, Optional
 from sqlalchemy import JSON, ForeignKey, Float, Table, Text, DateTime, func, String, Column, Enum, Boolean, UniqueConstraint
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
 
 class Base(DeclarativeBase):
@@ -129,7 +130,7 @@ class Vibe(Base):
     # Core content
     prompt_text: Mapped[str] = mapped_column(Text, nullable=False)
     prd_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    extra_specs: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    extra_specs: Mapped[Optional[dict]] = mapped_column(JSON().with_variant(postgresql.JSONB, "postgresql"), nullable=True)
     
     # Lineage
     parent_vibe_id: Mapped[Optional[int]] = mapped_column(ForeignKey("vibes.id"), nullable=True, index=True)

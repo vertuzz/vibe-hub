@@ -6,9 +6,11 @@ The backend for VibeHub, a visual-first aggregation platform for AI-generated so
 - **Python**: 3.13
 - **Framework**: [FastAPI](https://fastapi.tiangolo.com/)
 - **ORM**: [SQLAlchemy 2.0](https://www.sqlalchemy.org/)
-- **Database**: PostgreSQL (Production), SQLite (Development & Testing)
+- **Database**: PostgreSQL
+- **Migrations**: Alembic
 - **Security**: [JWT](https://pyjwt.readthedocs.io/) (via `python-jose`) & `bcrypt`
 - **Package Manager**: [uv](https://github.com/astral-sh/uv)
+- **Containerization**: Docker Compose (for local DB)
 - **Testing**: `pytest`
 
 ## Core Features
@@ -21,25 +23,49 @@ The backend for VibeHub, a visual-first aggregation platform for AI-generated so
 
 ## Getting Started
 
-1. **Install uv**: Follow instructions at [astral.sh/uv](https://astral.sh/uv).
-2. **Setup Project**:
-   ```bash
-   uv sync
-   ```
-3. **Environment**:
-   Set `SECRET_KEY` for JWT signing. Default dev key is used if unset.
-4. **Run Server**:
-   ```bash
-   uv run uvicorn app.main:app --reload
-   ```
-5. **Interactive Docs**:
-   Navigate to [http://localhost:8000/docs](http://localhost:8000/docs) for the Swagger UI.
+### 1. Prerequisites
+- [uv](https://github.com/astral-sh/uv) installed.
+- Docker & Docker Compose installed.
+
+### 2. Infrastructure
+Spin up the local PostgreSQL instance:
+```bash
+docker compose up -d
+```
+
+### 3. Setup Project
+```bash
+uv sync
+```
+
+### 4. Environment Configuration
+The project uses `.env` files for configuration. Create a `backend/.env` file:
+```env
+DATABASE_URL=postgresql://user:password@localhost:5432/vibehub
+TEST_DATABASE_URL=postgresql://user:password@localhost:5432/vibehub_test
+SECRET_KEY=your_secret_key_here
+```
+
+### 5. Database Initialization
+Run migrations to set up the database schema:
+```bash
+export DATABASE_URL=postgresql://user:password@localhost:5432/vibehub
+uv run alembic upgrade head
+```
+
+### 6. Run Server
+```bash
+uv run uvicorn app.main:app --reload
+```
+
+### 7. Interactive Docs
+Navigate to [http://localhost:8000/docs](http://localhost:8000/docs) for the Swagger UI.
 
 ## Testing
-Comprehensive integration tests cover 100% of the happy paths using an in-memory SQLite database.
+The test suite uses a dedicated PostgreSQL test database. The database is automatically created before tests and dropped after completion.
 
 ```bash
-uv run pytest tests/ -v
+uv run pytest
 ```
 
 ## Project Structure
@@ -53,4 +79,4 @@ uv run pytest tests/ -v
 - `tests/`: Integration tests using `TestClient`.
 - `migrations/`: Alembic database migration scripts.
 - `pyproject.toml`: Project metadata and dependencies.
-
+- `docker-compose.yml`: Local infrastructure (PostgreSQL).

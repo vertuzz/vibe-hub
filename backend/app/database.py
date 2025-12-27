@@ -2,6 +2,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from typing import Generator
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Database URL from environment or default to postgres for production, sqlite for dev if needed
 # For now, let's assume postgres as per PRD, but we can override for tests
