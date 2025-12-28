@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, APIKeyHeader
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -19,46 +19,77 @@ router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-async def get_current_user(db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
+async def get_current_user(
+    db: AsyncSession = Depends(get_db), 
+    token: str = Depends(oauth2_scheme_optional),
+    api_key: Optional[str] = Depends(api_key_header)
+) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id_str: str = payload.get("sub")
-        if user_id_str is None:
-            raise credentials_exception
-        user_id = int(user_id_str)
-    except (JWTError, ValueError):
-        raise credentials_exception
     
-    result = await db.execute(
-        select(User).options(selectinload(User.links)).filter(User.id == user_id)
-    )
-    user = result.scalars().first()
+    user = None
+    
+    # Try API Key first
+    if api_key:
+        result = await db.execute(
+            select(User).options(selectinload(User.links)).filter(User.api_key == api_key)
+        )
+        user = result.scalars().first()
+    
+    # Try JWT if API Key didn't work or wasn't provided
+    if not user and token:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id_str: str = payload.get("sub")
+            if user_id_str:
+                user_id = int(user_id_str)
+                result = await db.execute(
+                    select(User).options(selectinload(User.links)).filter(User.id == user_id)
+                )
+                user = result.scalars().first()
+        except (JWTError, ValueError):
+            pass
+
     if user is None:
         raise credentials_exception
     return user
 
-async def get_current_user_optional(db: AsyncSession = Depends(get_db), token: Optional[str] = Depends(oauth2_scheme_optional)) -> Optional[User]:
-    if not token:
-        return None
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id_str: str = payload.get("sub")
-        if user_id_str is None:
-            return None
-        user_id = int(user_id_str)
-    except (JWTError, ValueError):
-        return None
+async def get_current_user_optional(
+    db: AsyncSession = Depends(get_db), 
+    token: Optional[str] = Depends(oauth2_scheme_optional),
+    api_key: Optional[str] = Depends(api_key_header)
+) -> Optional[User]:
+    user = None
     
-    result = await db.execute(
-        select(User).options(selectinload(User.links)).filter(User.id == user_id)
-    )
-    return result.scalars().first()
+    # Try API Key first
+    if api_key:
+        result = await db.execute(
+            select(User).options(selectinload(User.links)).filter(User.api_key == api_key)
+        )
+        user = result.scalars().first()
+        if user:
+            return user
+            
+    # Try JWT
+    if token:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id_str: str = payload.get("sub")
+            if user_id_str:
+                user_id = int(user_id_str)
+                result = await db.execute(
+                    select(User).options(selectinload(User.links)).filter(User.id == user_id)
+                )
+                user = result.scalars().first()
+        except (JWTError, ValueError):
+            return None
+    
+    return user
 
 @router.post("/register", response_model=schemas.User)
 async def register(user_in: schemas.UserCreate, db: AsyncSession = Depends(get_db)):

@@ -74,6 +74,8 @@ async def create_dream(
         prd_text=dream_in.prd_text,
         extra_specs=dream_in.extra_specs,
         status=dream_in.status,
+        app_url=dream_in.app_url,
+        is_agent_submitted=dream_in.is_agent_submitted,
         parent_dream_id=dream_in.parent_dream_id
     )
     

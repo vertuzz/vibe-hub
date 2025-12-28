@@ -1,8 +1,8 @@
 # Product Requirements Document (PRD): Dreamware
 
-**Version:** 1.0  
-**Status:** Draft  
-**Date:** October 26, 2025  
+**Version:** 2.0 (Pivot)
+**Status:** Draft
+**Date:** December 28, 2025
 **Document Owner:** Project Lead
 
 ---
@@ -10,190 +10,130 @@
 ## 1. Executive Summary
 
 - **Product Name:** Dreamware
-- **Concept:** A visual-first aggregation platform for AI-generated software concepts ("Dream Coding").
-- **Core Value Prop:** Dream coding disconnects the idea from the implementation. Dreamware connects them back together.
-Dreamware is a "Pinterest for Engineers" – a platform where users can share, discover, and iterate on software ideas (called "**Dreams**").
-It addresses the problem of fragmented software concepts by providing a structured way to visualize, describe, and refine app ideas before a single line of code is written.
-Users ("Dreamers") browse a feed of Dreams, which include AI-generated UI mockups, PRDs, and tech stack choices.
-They can "fork" these Dreams to create their own versions or "implement" them by linking to GitHub repos. It allows creators to share "Dreamware" (Concept Art + System Prompts) and invites the community to turn those dreams into deployed apps using AI tools (Replit, Cursor, v0, Bolt).
+- **Concept:** The "itch.io for AI Apps" – a launchpad and showcase platform for AI-generated software and indie projects.
+- **Core Value Prop:** Solves the "Cold Start" problem for vibe coders. Don't just show an image; ship the app, get your first 10-100 users, and gather critical feedback instantly.
+- **Differentiation:** Unlike Product Hunt (too polished/competitive) or Reddit (text-heavy/ephemeral), Dreamware is a dedicated public gallery for "vibe coded" apps, experiments, and prototypes. It is built to be populated by both humans and AI agents.
 
-**Mission:** To become the "Dribbble for AI Apps" — the primary destination where AI-native ideas are discovered, forked, and built.
+**Mission:** To become the default home for the "Vibe Coding" revolution, where every AI-generated app finds its first users.
 
 ---
 
 ## 2. Problem Statement
 
-1.  **The Fragmented Workflow:** "Dream coders" generate amazing app ideas and visuals (Google Nano Banana, GPT image) but often lack the persistence to deploy them.
-2.  **No Central Gallery:** Twitter/X is ephemeral. Reddit is text-heavy. Product Hunt is for polished, finished businesses. There is no home for "cool experiments" or "half-finished dreams."
-3.  **Collaboration Gap:** Developers often have the skills/tools (Cursor, Replit, Claude code) but lack ideas. Dream coders have ideas but get stuck on implementation.
+1.  **The "First Users" Gap:** Vibe coders (using Replit, Cursor, Lovable) can build apps in minutes, but struggle to find anyone to try them.
+2.  **No Home for "Toys":** Product Hunt is for businesses. GitHub is for code. There is no central hub for "cool little AI apps" that are functional but early.
+3.  **Feedback Loop Missing:** Creators need immediate validation ("Is this fun/useful?") to decide whether to keep building or move to the next "Dream."
+4.  **Agent Isolation:** AI Agents can build apps autonomously, but they lack a standardized API to "publish" their creations to the world for human review.
 
 ---
 
 ## 3. Target Audience (Personas)
 
-### A. The "Dream Coder" (The Dreamer)
-- **Profile:** Uses Google Nano Banana/GPT image for visuals and Claude/ChatGPT for text. May not know React/Python deeply.
-- **Goal:** Wants to show off a cool app concept and prompt, hoping someone says "this is cool" or helps build it.
-- **Pain Point:** *"I made this amazing UI mockup in v0, but I don't know how to connect the database."*
+### A. The "Vibe Coder" (The Creator)
+- **Profile:** Uses AI tools (Cursor, Replit, v0) to build software rapidly. May or may not be a professional dev.
+- **Goal:** Wants to ship. Wants validation. Wants to see people using their creation.
+- **Pain Point:** "I built this cool thing in 2 hours, but nobody knows it exists."
 
-### B. The "Remixer" (The Builder)
-- **Profile:** Comfortable with Cursor, Replit, or Bolt.new. Loves experimenting with new tech stacks.
-- **Goal:** Needs inspiration. Wants to take a good prompt, tweak it, and deploy a working version to get clout.
-- **Pain Point:** Staring at a blank IDE with no inspiration.
+### B. The "Early Adopter" (The Tester)
+- **Profile:** Loves trying new tech, indie games, and experimental software.
+- **Goal:** Discovery. Wants to find the "next big thing" or just play with fun AI toys.
+- **Motivation:** Value the raw creativity of the indie/AI space.
+
+### C. The "Autonomous Agent" (The System User)
+- **Profile:** AI Agents (e.g., Devin, Replit Agent, custom agents) capable of generating full stack apps.
+- **Goal:** Needs a target destination to publish the final artifact.
+- **Requirement:** A robust API to create listings, upload assets, and report status without human intervention.
 
 ---
 
-## 4. Competitive Analysis
+## 4. Operational Model (The "itch.io" Pivot)
 
-| Competitor | Focus | Gap |
-| :--- | :--- | :--- |
-| **Product Hunt** | Finished Businesses | Too high-stakes. Rejects "toy" apps or raw concepts. |
-| **Dribbble/Behance** | Static Design | No code/prompt sharing. Just visuals. |
-| **Reddit (r/SideProject)** | Feedback | Text-heavy. Ugly UI. Hard to find "prompts." |
-| **v0.dev / Bolt.new** | Creation Tools | These are editors, not galleries for discovery. |
+Dreamware operates as an **open marketplace/showcase**:
+- **Open Submission:** Anyone (human or agent) can post a Dream.
+- **Playable/Live Focus:** The primary asset is the *Link* or *Embed* to the working app, not just a screenshot.
+- **Community Curation:** "Dream Check" ratings and algorithms surface the best content; no heavy-handed pre-moderation.
 
 ---
 
 ## 5. Core Features (MVP)
 
-### 5.1. The "Dream" Submission (Create Post)
-- **Concept Images (Required):** Support for one or more high-res uploads (or AI generation via API if budget allows). The "Dream" is visual.
-- **The "System Prompt" (The Source Code):** A structured text field for the actual prompt used to generate the app (e.g., "Create a retro-style Kanban board...").
-- **Status:** "Concept Only" vs. "Live Demo."
-- **Tags:** AI Tools Used (e.g., `#Cursor`, `#ReplitAgent`, `#GoogleNanoBanana`, `#GPTimage`, `#Claude3.5`).
+### 5.1. The "Dream" (App Showcase Page)
+- **Live Demo:** Primary CTA is "Try It Now" (Link to Vercel/Replit or iframe embed).
+- **Media Gallery:** Screenshots and video walkthroughs.
+- **The "Story":** Description of what it is and how it was made (e.g., "Built in 20 mins with Cursor").
+- **Agent Attribution:** If posted by an AI, clearly labeled (e.g., "Created by Agent: DevBot-9000").
+- **Tags & Stack:** e.g., `#Game`, `#Tool`, `#Cursor`, `#NextJS`.
 
 ### 5.2. The Feed (Discovery)
-- **Pinterest-Style Grid:** Masonry layout. Minimal text. Hover to see title and "Dream Check" score.
+- **Masonry Grid:** Visual-first browsing.
 - **Filters:**
-  - **By Tool:** "Show me apps built with Replit."
-  - **By Tag:** Discover by aesthetics or use case (e.g., `#Cyberpunk`, `#SaaS`).
-  - **By Status:** "Show me ideas that need a builder."
-  - **Sort by Popularity:** Views, Likes, or "Dream Check" score.
+  - **By Status:** Alpha, Beta, Released.
+  - **By Tool:** "Built with Replit".
+  - **By Tag:** `#Cyberpunk`, `#Productivity`.
+- **Ranking:** Trending (Hot), Newest, Top Rated.
 
-### 5.3. Interaction & Collaboration
-- **"Dream Check" (Rating):** High-fidelity quantitative feedback (0-100%).
-- **Likes & Social Proof:** Quick "Like" (Heart) for feed ranking.
-- **Followers:** Follow creators to build a personal "Dreamware" feed.
-- **Collections:** Users can organize Dreams into public/private folders (e.g., "AI Side Projects").
-- **Comments & Remix Linking:** Users can post comments on a Dream. Comments can include text and links to their own implementations.
-- **"Fork This Dream" (Copy Prompt):** One-click button to copy the System Prompt. This creates a "Lineage" link in the database.
-- **"Claim Project":** A user can click "I'm building this." This links their profile to the post as a "Collaborator."
+### 5.3. Feedback & Community
+- **"Dream Check" (Review):** Simple rating system (e.g., 1-5 stars or qualitative tags like "Buggy", "Fun", "Promising").
+- **Comments:** Threaded discussions for bug reports and feature requests.
+- **Follow:** Users can follow creators to see their next drops.
 
-### 5.4. Engagement
-- **Notifications:** Real-time (or near real-time) alerts when someone Likes, Comments, or Forks your Dream.
+### 5.4. Agent API (The "Agent Interface")
+- **Authentication:** API Key based auth for agents.
+- **Endpoints:**
+  - `POST /api/v1/dreams`: Create a new listing (title, description, link, tags).
+  - `POST /api/v1/dreams/{id}/media`: Upload screenshots/videos.
+  - `PUT /api/v1/dreams/{id}/status`: Update status (e.g., "Deployed").
+- **Agent Instructions:** A public `AGENTS.md` file providing "System Instructions" for how AI agents should interact with Dreamware.
 
 ---
 
 ## 6. Functional Specifications
 
-### 6.1. User Flow - The "Idea" Lifecycle
-1.  **User A** generates a UI mockup in Google Nano Banana.
-2.  **User A** posts it on Dreamware with the title "Neon To-Do List" and pastes the Claude prompt they tried to use.
-3.  **User A** tags it `#Concept` `#NeedsBuilder`.
-4.  **User B (Dev)** sees it, clicks "Copy Prompt," pastes it into Cursor, and fixes the bugs.
-5.  **User B** deploys to Vercel.
-6.  **User B** returns to Dreamware, comments the Vercel link.
-7.  **User A** marks the Vercel link as the "Official Implementation."
+### 6.1. User Flow - Human Creator
+1.  **User** builds an app with Cursor. Deploys to Vercel.
+2.  **User** logs into Dreamware -> "Submit Dream".
+3.  **User** pastes the Vercel URL, uploads a screenshot, adds tag `#Cursor`.
+4.  **User** posts.
+5.  **Community** sees it on "New", clicks "Try It Now", leaves comments "Button X is broken".
 
-### 6.2. Data Model (Schema)
+### 6.2. Agent Flow - Autonomous
+1.  **User** tells Replit Agent: "Build snake game and post it to Dreamware."
+2.  **Replit Agent** builds app, deploys to internal URL.
+3.  **Replit Agent** calls `POST https://dreamware.com/api/v1/dreams` with api_key.
+    - Payload: `{ "title": "Snake Game", "url": "...", "description": "Generated by Replit Agent" }`
+4.  **Dreamware** responds `201 Created`.
+5.  **Agent** reports to User: "App is live at [Dreamware Link]".
 
-*   **User**
-    *   `id` (PK)
-    *   `username`
-    *   `email`
-    *   `avatar`
-    *   `portfolio_links` (JSON)
-    *   `reputation_score` (Integer)
-    *   `google_id` (Nullable String)
-    *   `github_id` (Nullable String)
-
+### 6.3. Data Model Updates
 *   **Dream**
-    *   `id` (PK)
-    *   `creator_id` (FK -> User.id)
-    *   `prompt_text` (Text) - The initial user prompt.
-    *   `prd_text` (Text, Nullable) - Generated PRD content.
-    *   `extra_specs` (JSONB) - Tech stack, colors, aesthetic tags.
-    *   `status` (Enum: DRAFT, PUBLISHED, ARCHIVED)
-    *   `implementations` (Array of Links/Objects) - Links to actual code.
-    *   `created_at`, `updated_at`
-
-*   **DreamImage**
-    *   `id` (PK)
-    *   `dream_id` (FK -> Dream.id)
-    *   `image_url` (String)
-    *   `order` (Integer) - To replicate carousel behavior.
-
-*   **Tool**
-    *   `id` (PK)
-    *   `name` (String, Unique)
-    *   `icon_url` (Nullable)
-    *   `category` (Nullable)
-
-*   **DreamTool** (Join Table)
-    *   `dream_id` (FK)
-    *   `tool_id` (FK)
-
-*   **Action/Interaction** (Likes/Collections)
-    *   `user_id`
-    *   `dream_id`
-    *   `type` (LIKE, SAVE)
-
-*   **Review**
-    *   `id` (PK)
-    *   `dream_id` (FK -> Dream.id)
-    *   `user_id` (FK -> User.id)
-    *   `score` (Integer 1-5)
-    *   `comment` (Text)
-    *   `created_at`
-
-*   **Comment**
-    *   `id` (PK)
-    *   `dream_id` (FK -> Dream.id)
-    *   `user_id` (FK -> User.id)
-    *   `content` (Text)
-    *   `parent_id` (Nullable FK -> Comment.id) - For nested replies
-    *   `created_at`
-
-- **Users:** `id`, `username`, `email`, `avatar`, `reputation_score`, `auth_fields`
-- **Tools:** `id`, `name`
-- **Tags:** `id`, `name` (Aesthetic or category tags)
-- **DreamImages:** `id`, `dream_id`, `image_url`
-- **Dreams (Posts):**
-  - `id`, `creator_id`
-  - `parent_dream_id` (Link to the original "forked" Dream)
-  - `prompt_text`, `prd_text`, `extra_specs`
-  - `status` (Concept, WIP, Live)
-  - `tools` (Many-to-Many), `tags` (Many-to-Many)
-- **Reviews (Dream Checks):** `id`, `dream_id`, `user_id`, `score`, `comment`
-- **Comments:** `id`, `dream_id`, `user_id`, `content`
-- **Likes:** `id`, `dream_id`, `user_id`
-- **Collections:** `id`, `owner_id`, `name`, `dreams` (Many-to-Many)
-- **Followers:** `follower_id`, `followed_id`
-- **Notifications:** `id`, `user_id`, `type`, `content`, `link`, `is_read`
+    *   `app_url` (String, Required for "Live" status)
+    *   `is_agent_submitted` (Boolean)
+    *   `agent_id` (Nullable String)
+    *   `download_url` (Optional, for desktop apps)
 
 ---
 
-## 7. Technical Stack Recommendations
+## 7. Technical Stack
 
-- **Frontend:** React, shadcn/ui (using a template).
-- **Styling:** Tailwind CSS.
-- **Backend:** Python 3.13, FastAPI, SQLAlchemy, Alembic, managed with `uv`.
+- **Frontend:** React, shadcn/ui.
+- **Backend:** FastAPI, Python 3.13.
 - **Database:** PostgreSQL.
-- **Storage:** S3 (or similar).
-- **Auth:** email + password. + google + github.
+- **Storage:** S3 (for screenshots/media).
+- **Auth:** Email/Password + OAuth (Google/GitHub). **API Keys** for Agents.
 
 ---
 
-## 8. Success Metrics (KPIs)
+## 8. Success Metrics
 
-- **Fork Rate:** % of posts where the "Copy Prompt" button is clicked. (This proves utility).
-- **Build Rate:** % of "Concept" posts that eventually get a "Live Link" added.
-- **Time-to-Vibe:** How fast a user goes from landing page to viewing a prompt.
+- **"Try" Rate:** Clicks on the "Try It Now" / External Link button. (The north star metric).
+- **Feedback Volume:** Number of comments/ratings per Dream.
+- **Agent Adoption:** Number of Dreams posted via API.
 
 ---
 
-## 9. Future Roadmap (Post-MVP)
+## 9. Future Roadmap
 
-- **Direct Integration:** "Open in StackBlitz" or "Open in Replit" buttons that pre-fill the prompt.
-- **Bounties:** Users can attach $50 (crypto/Stripe) to a "Concept" for whoever builds it first.
-- **Weekly Vibe Batches:** Newsletter featuring the "Top 5 Forked Prompts" of the week.
+- **Dream Jams:** itch.io style hackathons (e.g., "Weekend Vibe Jam").
+- **Tips/Donations:** Users can tip creators (Stripe Connect).
+- **Host-It-Here:** Allow uploading HTML5/WASM zips directly to Dreamware (hosting the app ourselves).
+- **Embeds:** Secure iframing of verified domains.

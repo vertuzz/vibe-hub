@@ -60,6 +60,7 @@ class User(Base):
     hashed_password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     google_id: Mapped[Optional[str]] = mapped_column(String(100), unique=True, index=True, nullable=True)
     github_id: Mapped[Optional[str]] = mapped_column(String(100), unique=True, index=True, nullable=True)
+    api_key: Mapped[Optional[str]] = mapped_column(String(255), unique=True, index=True, nullable=True)
 
     dreams: Mapped[List["Dream"]] = relationship("Dream", back_populates="creator")
     comments: Mapped[List["Comment"]] = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
@@ -131,6 +132,10 @@ class Dream(Base):
     prompt_text: Mapped[str] = mapped_column(Text, nullable=False)
     prd_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     extra_specs: Mapped[Optional[dict]] = mapped_column(JSON().with_variant(postgresql.JSONB, "postgresql"), nullable=True)
+    
+    # New fields for Dreamware v2.0
+    app_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    is_agent_submitted: Mapped[bool] = mapped_column(Boolean, default=False)
     
     # Lineage
     parent_dream_id: Mapped[Optional[int]] = mapped_column(ForeignKey("dreams.id"), nullable=True, index=True)

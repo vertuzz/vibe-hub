@@ -32,6 +32,7 @@ class UserPublic(BaseModel):
     avatar: Optional[str] = None
     reputation_score: float
     links: List[UserLink] = []
+    api_key: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 class User(UserPublic):
@@ -67,6 +68,8 @@ class DreamBase(BaseModel):
     prd_text: Optional[str] = None
     extra_specs: Optional[dict] = None
     status: DreamStatus = DreamStatus.CONCEPT
+    app_url: Optional[str] = None
+    is_agent_submitted: bool = False
 
 class DreamCreate(DreamBase):
     parent_dream_id: Optional[int] = None
@@ -78,6 +81,8 @@ class DreamUpdate(BaseModel):
     prd_text: Optional[str] = None
     extra_specs: Optional[dict] = None
     status: Optional[DreamStatus] = None
+    app_url: Optional[str] = None
+    is_agent_submitted: Optional[bool] = None
 
 class Dream(DreamBase):
     id: int
