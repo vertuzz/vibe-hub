@@ -81,3 +81,31 @@ async def like_comment(
         raise HTTPException(status_code=400, detail="Already liked")
         
     return {"message": "Liked"}
+
+@router.delete("/comments/{comment_id}/like")
+async def unlike_comment(
+    comment_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(CommentLike).filter(
+            CommentLike.comment_id == comment_id, 
+            CommentLike.user_id == current_user.id
+        )
+    )
+    db_like = result.scalars().first()
+    if not db_like:
+        raise HTTPException(status_code=404, detail="Like not found")
+    
+    # Update counter cache
+    result = await db.execute(select(Comment).filter(Comment.id == comment_id))
+    comment = result.scalars().first()
+    if comment:
+        comment.likes_count = max(0, comment.likes_count - 1)
+        db.add(comment)
+    
+    await db.delete(db_like)
+    await db.commit()
+    
+    return {"message": "Unliked"}
