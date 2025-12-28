@@ -12,7 +12,7 @@ from app.database import get_db
 from app.models import User
 from app.schemas import schemas
 from app.core import security
-from app.core.security import SECRET_KEY, ALGORITHM
+from app.core.security import SECRET_KEY, ALGORITHM, generate_api_key
 from app.core.config import settings
 
 router = APIRouter()
@@ -110,6 +110,7 @@ async def register(user_in: schemas.UserCreate, db: AsyncSession = Depends(get_d
         username=user_in.username,
         email=user_in.email,
         hashed_password=security.get_password_hash(user_in.password),
+        api_key=generate_api_key(),
         reputation_score=0.0
     )
     db.add(db_user)
@@ -211,6 +212,7 @@ async def google_login(request: schemas.SocialLoginRequest, db: AsyncSession = D
                 email=email,
                 username=username,
                 google_id=google_id,
+                api_key=generate_api_key(),
                 avatar=avatar,
                 reputation_score=0.0
             )
@@ -311,6 +313,7 @@ async def github_login(request: schemas.SocialLoginRequest, db: AsyncSession = D
                 email=email,
                 username=username,
                 github_id=github_id,
+                api_key=generate_api_key(),
                 avatar=avatar,
                 reputation_score=0.0
             )
@@ -327,3 +330,22 @@ async def github_login(request: schemas.SocialLoginRequest, db: AsyncSession = D
         data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
     return {"access_token": jwt_token, "token_type": "bearer"}
+
+
+@router.post("/api-key/regenerate", response_model=schemas.User)
+async def regenerate_api_key(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Regenerate the API key for the current user.
+    """
+    current_user.api_key = generate_api_key()
+    db.add(current_user)
+    await db.commit()
+    
+    # Reload with eager loading
+    result = await db.execute(
+        select(User).options(selectinload(User.links)).filter(User.id == current_user.id)
+    )
+    return result.scalars().first()
