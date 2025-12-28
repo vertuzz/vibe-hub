@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, EmailStr, HttpUrl
-from app.models import VibeStatus, NotificationType
+from app.models import DreamStatus, NotificationType
 
 # User Schemas
 class UserBase(BaseModel):
@@ -48,39 +48,39 @@ class Tag(TagBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
 
-# Vibe Image
-class VibeImageBase(BaseModel):
+# Dream Image
+class DreamImageBase(BaseModel):
     image_url: str
 
-class VibeImage(VibeImageBase):
+class DreamImage(DreamImageBase):
     id: int
-    vibe_id: int
+    dream_id: int
     model_config = ConfigDict(from_attributes=True)
 
-# Vibe
-class VibeBase(BaseModel):
+# Dream
+class DreamBase(BaseModel):
     prompt_text: str
     prd_text: Optional[str] = None
     extra_specs: Optional[dict] = None
-    status: VibeStatus = VibeStatus.CONCEPT
+    status: DreamStatus = DreamStatus.CONCEPT
 
-class VibeCreate(VibeBase):
-    parent_vibe_id: Optional[int] = None
+class DreamCreate(DreamBase):
+    parent_dream_id: Optional[int] = None
     tool_ids: List[int] = []
     tag_ids: List[int] = []
 
-class VibeUpdate(BaseModel):
+class DreamUpdate(BaseModel):
     prompt_text: Optional[str] = None
     prd_text: Optional[str] = None
     extra_specs: Optional[dict] = None
-    status: Optional[VibeStatus] = None
+    status: Optional[DreamStatus] = None
 
-class Vibe(VibeBase):
+class Dream(DreamBase):
     id: int
     creator_id: int
-    parent_vibe_id: Optional[int] = None
+    parent_dream_id: Optional[int] = None
     created_at: datetime
-    images: List[VibeImage] = []
+    images: List[DreamImage] = []
     tools: List[Tool] = []
     tags: List[Tag] = []
     model_config = ConfigDict(from_attributes=True)
@@ -96,7 +96,7 @@ class ImplementationCreate(ImplementationBase):
 
 class Implementation(ImplementationBase):
     id: int
-    vibe_id: int
+    dream_id: int
     user_id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -110,7 +110,7 @@ class CommentCreate(CommentBase):
 
 class Comment(CommentBase):
     id: int
-    vibe_id: int
+    dream_id: int
     user_id: int
     created_at: datetime
     likes_count: int
@@ -126,7 +126,7 @@ class ReviewCreate(ReviewBase):
 
 class Review(ReviewBase):
     id: int
-    vibe_id: int
+    dream_id: int
     user_id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -134,7 +134,7 @@ class Review(ReviewBase):
 # Like
 class Like(BaseModel):
     id: int
-    vibe_id: int
+    dream_id: int
     user_id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -146,13 +146,13 @@ class CollectionBase(BaseModel):
     is_public: bool = True
 
 class CollectionCreate(CollectionBase):
-    vibe_ids: List[int] = []
+    dream_ids: List[int] = []
 
 class Collection(CollectionBase):
     id: int
     owner_id: int
     created_at: datetime
-    vibes: List[Vibe] = []
+    dreams: List[Dream] = []
     model_config = ConfigDict(from_attributes=True)
 
 # Notification

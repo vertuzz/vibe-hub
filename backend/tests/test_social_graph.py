@@ -23,17 +23,17 @@ async def test_social_graph_and_notifications(client: AsyncClient):
     follow_resp = await client.post(f"/users/{idB}/follow", headers=headersA)
     assert follow_resp.status_code == 200
     
-    # 3. User B creates a vibe (optional for this specific test)
-    vibe_resp = await client.post("/vibes/", json={"prompt_text": "vibe"}, headers=headersB)
-    vibe_id = vibe_resp.json()["id"]
+    # 3. User B creates a dream (optional for this specific test)
+    dream_resp = await client.post("/dreams/", json={"prompt_text": "dream"}, headers=headersB)
+    dream_id = dream_resp.json()["id"]
     
-    # 4. User A likes User B's vibe -> should trigger notification
-    await client.post(f"/vibes/{vibe_id}/like", headers= headersA)
+    # 4. User A likes User B's dream -> should trigger notification
+    await client.post(f"/dreams/{dream_id}/like", headers= headersA)
     
     # 5. User B checks notifications
     notif_resp = await client.get("/notifications/", headers=headersB)
     assert len(notif_resp.json()) >= 1
-    assert "liked your vibe" in notif_resp.json()[0]["content"]
+    assert "liked your dream" in notif_resp.json()[0]["content"]
     
     # Mark read
     notif_id = notif_resp.json()[0]["id"]

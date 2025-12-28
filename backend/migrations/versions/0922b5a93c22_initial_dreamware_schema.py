@@ -1,18 +1,18 @@
-"""Initial migration after Postgres setup
+"""initial dreamware schema
 
-Revision ID: a74acab37d14
+Revision ID: 0922b5a93c22
 Revises: 
-Create Date: 2025-12-27 22:31:30.518353
+Create Date: 2025-12-28 20:50:10.054261
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'a74acab37d14'
+revision: str = '0922b5a93c22'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -66,6 +66,24 @@ def upgrade() -> None:
     op.create_index(op.f('ix_collections_id'), 'collections', ['id'], unique=False)
     op.create_index(op.f('ix_collections_is_public'), 'collections', ['is_public'], unique=False)
     op.create_index(op.f('ix_collections_owner_id'), 'collections', ['owner_id'], unique=False)
+    op.create_table('dreams',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('creator_id', sa.Integer(), nullable=False),
+    sa.Column('prompt_text', sa.Text(), nullable=False),
+    sa.Column('prd_text', sa.Text(), nullable=True),
+    sa.Column('extra_specs', sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), 'postgresql'), nullable=True),
+    sa.Column('parent_dream_id', sa.Integer(), nullable=True),
+    sa.Column('status', sa.Enum('CONCEPT', 'WIP', 'LIVE', name='dreamstatus'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['creator_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['parent_dream_id'], ['dreams.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_dreams_created_at'), 'dreams', ['created_at'], unique=False)
+    op.create_index(op.f('ix_dreams_creator_id'), 'dreams', ['creator_id'], unique=False)
+    op.create_index(op.f('ix_dreams_id'), 'dreams', ['id'], unique=False)
+    op.create_index(op.f('ix_dreams_parent_dream_id'), 'dreams', ['parent_dream_id'], unique=False)
+    op.create_index(op.f('ix_dreams_status'), 'dreams', ['status'], unique=False)
     op.create_table('follows',
     sa.Column('follower_id', sa.Integer(), nullable=False),
     sa.Column('followed_id', sa.Integer(), nullable=False),
@@ -100,114 +118,96 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_user_links_id'), 'user_links', ['id'], unique=False)
     op.create_index(op.f('ix_user_links_user_id'), 'user_links', ['user_id'], unique=False)
-    op.create_table('vibes',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('creator_id', sa.Integer(), nullable=False),
-    sa.Column('prompt_text', sa.Text(), nullable=False),
-    sa.Column('prd_text', sa.Text(), nullable=True),
-    sa.Column('extra_specs', sa.JSON(), nullable=True),
-    sa.Column('parent_vibe_id', sa.Integer(), nullable=True),
-    sa.Column('status', sa.Enum('CONCEPT', 'WIP', 'LIVE', name='vibestatus'), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['creator_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['parent_vibe_id'], ['vibes.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_vibes_created_at'), 'vibes', ['created_at'], unique=False)
-    op.create_index(op.f('ix_vibes_creator_id'), 'vibes', ['creator_id'], unique=False)
-    op.create_index(op.f('ix_vibes_id'), 'vibes', ['id'], unique=False)
-    op.create_index(op.f('ix_vibes_parent_vibe_id'), 'vibes', ['parent_vibe_id'], unique=False)
-    op.create_index(op.f('ix_vibes_status'), 'vibes', ['status'], unique=False)
-    op.create_table('collection_vibes',
+    op.create_table('collection_dreams',
     sa.Column('collection_id', sa.Integer(), nullable=False),
-    sa.Column('vibe_id', sa.Integer(), nullable=False),
+    sa.Column('dream_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['collection_id'], ['collections.id'], ),
-    sa.ForeignKeyConstraint(['vibe_id'], ['vibes.id'], ),
-    sa.PrimaryKeyConstraint('collection_id', 'vibe_id')
+    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
+    sa.PrimaryKeyConstraint('collection_id', 'dream_id')
     )
     op.create_table('comments',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('vibe_id', sa.Integer(), nullable=False),
+    sa.Column('dream_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('likes_count', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['vibe_id'], ['vibes.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_comments_created_at'), 'comments', ['created_at'], unique=False)
+    op.create_index(op.f('ix_comments_dream_id'), 'comments', ['dream_id'], unique=False)
     op.create_index(op.f('ix_comments_id'), 'comments', ['id'], unique=False)
     op.create_index(op.f('ix_comments_user_id'), 'comments', ['user_id'], unique=False)
-    op.create_index(op.f('ix_comments_vibe_id'), 'comments', ['vibe_id'], unique=False)
+    op.create_table('dream_images',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('dream_id', sa.Integer(), nullable=False),
+    sa.Column('image_url', sa.String(length=512), nullable=False),
+    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_dream_images_dream_id'), 'dream_images', ['dream_id'], unique=False)
+    op.create_index(op.f('ix_dream_images_id'), 'dream_images', ['id'], unique=False)
+    op.create_table('dream_tags',
+    sa.Column('dream_id', sa.Integer(), nullable=False),
+    sa.Column('tag_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
+    sa.ForeignKeyConstraint(['tag_id'], ['tags.id'], ),
+    sa.PrimaryKeyConstraint('dream_id', 'tag_id')
+    )
+    op.create_table('dream_tools',
+    sa.Column('dream_id', sa.Integer(), nullable=False),
+    sa.Column('tool_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
+    sa.ForeignKeyConstraint(['tool_id'], ['tools.id'], ),
+    sa.PrimaryKeyConstraint('dream_id', 'tool_id')
+    )
     op.create_table('implementations',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('vibe_id', sa.Integer(), nullable=False),
+    sa.Column('dream_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('url', sa.String(length=512), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('is_official', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['vibe_id'], ['vibes.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_implementations_created_at'), 'implementations', ['created_at'], unique=False)
+    op.create_index(op.f('ix_implementations_dream_id'), 'implementations', ['dream_id'], unique=False)
     op.create_index(op.f('ix_implementations_id'), 'implementations', ['id'], unique=False)
     op.create_index(op.f('ix_implementations_user_id'), 'implementations', ['user_id'], unique=False)
-    op.create_index(op.f('ix_implementations_vibe_id'), 'implementations', ['vibe_id'], unique=False)
     op.create_table('likes',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('vibe_id', sa.Integer(), nullable=False),
+    sa.Column('dream_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['vibe_id'], ['vibes.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('vibe_id', 'user_id', name='uq_vibe_like')
+    sa.UniqueConstraint('dream_id', 'user_id', name='uq_dream_like')
     )
     op.create_index(op.f('ix_likes_created_at'), 'likes', ['created_at'], unique=False)
+    op.create_index(op.f('ix_likes_dream_id'), 'likes', ['dream_id'], unique=False)
     op.create_index(op.f('ix_likes_id'), 'likes', ['id'], unique=False)
     op.create_index(op.f('ix_likes_user_id'), 'likes', ['user_id'], unique=False)
-    op.create_index(op.f('ix_likes_vibe_id'), 'likes', ['vibe_id'], unique=False)
     op.create_table('reviews',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('vibe_id', sa.Integer(), nullable=False),
+    sa.Column('dream_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('score', sa.Float(), nullable=False),
     sa.Column('comment', sa.Text(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['vibe_id'], ['vibes.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_reviews_created_at'), 'reviews', ['created_at'], unique=False)
+    op.create_index(op.f('ix_reviews_dream_id'), 'reviews', ['dream_id'], unique=False)
     op.create_index(op.f('ix_reviews_id'), 'reviews', ['id'], unique=False)
     op.create_index(op.f('ix_reviews_user_id'), 'reviews', ['user_id'], unique=False)
-    op.create_index(op.f('ix_reviews_vibe_id'), 'reviews', ['vibe_id'], unique=False)
-    op.create_table('vibe_images',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('vibe_id', sa.Integer(), nullable=False),
-    sa.Column('image_url', sa.String(length=512), nullable=False),
-    sa.ForeignKeyConstraint(['vibe_id'], ['vibes.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_vibe_images_id'), 'vibe_images', ['id'], unique=False)
-    op.create_index(op.f('ix_vibe_images_vibe_id'), 'vibe_images', ['vibe_id'], unique=False)
-    op.create_table('vibe_tags',
-    sa.Column('vibe_id', sa.Integer(), nullable=False),
-    sa.Column('tag_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['tag_id'], ['tags.id'], ),
-    sa.ForeignKeyConstraint(['vibe_id'], ['vibes.id'], ),
-    sa.PrimaryKeyConstraint('vibe_id', 'tag_id')
-    )
-    op.create_table('vibe_tools',
-    sa.Column('vibe_id', sa.Integer(), nullable=False),
-    sa.Column('tool_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['tool_id'], ['tools.id'], ),
-    sa.ForeignKeyConstraint(['vibe_id'], ['vibes.id'], ),
-    sa.PrimaryKeyConstraint('vibe_id', 'tool_id')
-    )
     op.create_table('comment_likes',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('comment_id', sa.Integer(), nullable=False),
@@ -233,38 +233,32 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_comment_likes_created_at'), table_name='comment_likes')
     op.drop_index(op.f('ix_comment_likes_comment_id'), table_name='comment_likes')
     op.drop_table('comment_likes')
-    op.drop_table('vibe_tools')
-    op.drop_table('vibe_tags')
-    op.drop_index(op.f('ix_vibe_images_vibe_id'), table_name='vibe_images')
-    op.drop_index(op.f('ix_vibe_images_id'), table_name='vibe_images')
-    op.drop_table('vibe_images')
-    op.drop_index(op.f('ix_reviews_vibe_id'), table_name='reviews')
     op.drop_index(op.f('ix_reviews_user_id'), table_name='reviews')
     op.drop_index(op.f('ix_reviews_id'), table_name='reviews')
+    op.drop_index(op.f('ix_reviews_dream_id'), table_name='reviews')
     op.drop_index(op.f('ix_reviews_created_at'), table_name='reviews')
     op.drop_table('reviews')
-    op.drop_index(op.f('ix_likes_vibe_id'), table_name='likes')
     op.drop_index(op.f('ix_likes_user_id'), table_name='likes')
     op.drop_index(op.f('ix_likes_id'), table_name='likes')
+    op.drop_index(op.f('ix_likes_dream_id'), table_name='likes')
     op.drop_index(op.f('ix_likes_created_at'), table_name='likes')
     op.drop_table('likes')
-    op.drop_index(op.f('ix_implementations_vibe_id'), table_name='implementations')
     op.drop_index(op.f('ix_implementations_user_id'), table_name='implementations')
     op.drop_index(op.f('ix_implementations_id'), table_name='implementations')
+    op.drop_index(op.f('ix_implementations_dream_id'), table_name='implementations')
     op.drop_index(op.f('ix_implementations_created_at'), table_name='implementations')
     op.drop_table('implementations')
-    op.drop_index(op.f('ix_comments_vibe_id'), table_name='comments')
+    op.drop_table('dream_tools')
+    op.drop_table('dream_tags')
+    op.drop_index(op.f('ix_dream_images_id'), table_name='dream_images')
+    op.drop_index(op.f('ix_dream_images_dream_id'), table_name='dream_images')
+    op.drop_table('dream_images')
     op.drop_index(op.f('ix_comments_user_id'), table_name='comments')
     op.drop_index(op.f('ix_comments_id'), table_name='comments')
+    op.drop_index(op.f('ix_comments_dream_id'), table_name='comments')
     op.drop_index(op.f('ix_comments_created_at'), table_name='comments')
     op.drop_table('comments')
-    op.drop_table('collection_vibes')
-    op.drop_index(op.f('ix_vibes_status'), table_name='vibes')
-    op.drop_index(op.f('ix_vibes_parent_vibe_id'), table_name='vibes')
-    op.drop_index(op.f('ix_vibes_id'), table_name='vibes')
-    op.drop_index(op.f('ix_vibes_creator_id'), table_name='vibes')
-    op.drop_index(op.f('ix_vibes_created_at'), table_name='vibes')
-    op.drop_table('vibes')
+    op.drop_table('collection_dreams')
     op.drop_index(op.f('ix_user_links_user_id'), table_name='user_links')
     op.drop_index(op.f('ix_user_links_id'), table_name='user_links')
     op.drop_table('user_links')
@@ -275,6 +269,12 @@ def downgrade() -> None:
     op.drop_table('notifications')
     op.drop_index(op.f('ix_follows_created_at'), table_name='follows')
     op.drop_table('follows')
+    op.drop_index(op.f('ix_dreams_status'), table_name='dreams')
+    op.drop_index(op.f('ix_dreams_parent_dream_id'), table_name='dreams')
+    op.drop_index(op.f('ix_dreams_id'), table_name='dreams')
+    op.drop_index(op.f('ix_dreams_creator_id'), table_name='dreams')
+    op.drop_index(op.f('ix_dreams_created_at'), table_name='dreams')
+    op.drop_table('dreams')
     op.drop_index(op.f('ix_collections_owner_id'), table_name='collections')
     op.drop_index(op.f('ix_collections_is_public'), table_name='collections')
     op.drop_index(op.f('ix_collections_id'), table_name='collections')

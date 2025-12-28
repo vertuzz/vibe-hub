@@ -4,43 +4,43 @@ from sqlalchemy import select
 from typing import List
 
 from app.database import get_db
-from app.models import Comment, User, Vibe, Notification, NotificationType
+from app.models import Comment, User, Dream, Notification, NotificationType
 from app.schemas import schemas
 from app.routers.auth import get_current_user
 
 router = APIRouter()
 
-@router.get("/vibes/{vibe_id}/comments", response_model=List[schemas.Comment])
-async def get_vibe_comments(vibe_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Comment).filter(Comment.vibe_id == vibe_id))
+@router.get("/dreams/{dream_id}/comments", response_model=List[schemas.Comment])
+async def get_dream_comments(dream_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Comment).filter(Comment.dream_id == dream_id))
     return result.scalars().all()
 
-@router.post("/vibes/{vibe_id}/comments", response_model=schemas.Comment)
+@router.post("/dreams/{dream_id}/comments", response_model=schemas.Comment)
 async def create_comment(
-    vibe_id: int,
+    dream_id: int,
     comment_in: schemas.CommentCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(select(Vibe).filter(Vibe.id == vibe_id))
-    vibe = result.scalars().first()
-    if not vibe:
-        raise HTTPException(status_code=404, detail="Vibe not found")
+    result = await db.execute(select(Dream).filter(Dream.id == dream_id))
+    dream = result.scalars().first()
+    if not dream:
+        raise HTTPException(status_code=404, detail="Dream not found")
     
     db_comment = Comment(
-        vibe_id=vibe_id,
+        dream_id=dream_id,
         user_id=current_user.id,
         content=comment_in.content
     )
     db.add(db_comment)
     
     # Notify creator
-    if vibe.creator_id != current_user.id:
+    if dream.creator_id != current_user.id:
         notification = Notification(
-            user_id=vibe.creator_id,
+            user_id=dream.creator_id,
             type=NotificationType.COMMENT,
-            content=f"{current_user.username} commented on your vibe",
-            link=f"/vibes/{vibe_id}"
+            content=f"{current_user.username} commented on your dream",
+            link=f"/dreams/{dream_id}"
         )
         db.add(notification)
         

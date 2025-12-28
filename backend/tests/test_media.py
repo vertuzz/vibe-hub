@@ -9,31 +9,38 @@ import os
 def s3_setup():
     with mock_aws():
         s3 = boto3.client("s3", region_name="us-east-1")
-        s3.create_bucket(Bucket="vibehub")
+        s3.create_bucket(Bucket="dreamware")
         yield s3
 
 @pytest.mark.asyncio
 async def test_get_presigned_url_success(client, auth_headers, s3_setup):
     # Mock settings for test
-    settings.S3_BUCKET = "vibehub"
+    old_bucket = settings.S3_BUCKET
+    old_endpoint = settings.S3_ENDPOINT_URL
+    settings.S3_BUCKET = "dreamware"
+    settings.S3_ENDPOINT_URL = None
     settings.AWS_ACCESS_KEY_ID = "testing"
     settings.AWS_SECRET_ACCESS_KEY = "testing"
     settings.AWS_REGION = "us-east-1"
 
-    response = await client.post(
-        "/media/presigned-url",
-        headers=auth_headers,
-        json={"filename": "test.jpg", "content_type": "image/jpeg"}
-    )
-    
-    assert response.status_code == 200
-    data = response.json()
-    assert "upload_url" in data
-    assert "download_url" in data
-    assert "file_key" in data
-    assert "vibehub.s3.us-east-1.amazonaws.com" in data["download_url"]
-    assert data["file_key"].startswith("users/")
-    assert "X-Amz-Algorithm" in data["upload_url"]
+    try:
+        response = await client.post(
+            "/media/presigned-url",
+            headers=auth_headers,
+            json={"filename": "test.jpg", "content_type": "image/jpeg"}
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "upload_url" in data
+        assert "download_url" in data
+        assert "file_key" in data
+        assert "dreamware.s3.us-east-1.amazonaws.com" in data["download_url"]
+        assert data["file_key"].startswith("users/")
+        assert "X-Amz-Algorithm" in data["upload_url"]
+    finally:
+        settings.S3_BUCKET = old_bucket
+        settings.S3_ENDPOINT_URL = old_endpoint
 
 @pytest.mark.asyncio
 async def test_get_presigned_url_unauthorized(client):

@@ -1,21 +1,21 @@
 from fastapi import FastAPI
 from app.routers import (
-    auth, users, vibes, comments, reviews, 
+    auth, users, dreams, comments, reviews, 
     likes, implementations, collections, 
     follows, notifications, tools, tags, media
 )
 
 app = FastAPI(
-    title="VibeHub API",
-    description="Backend for VibeHub - The Dribbble for AI Apps",
+    title="Dreamware API",
+    description="Backend for Dreamware - The Pinterest for Engineers",
     version="0.1.0"
 )
 
 # Register routers
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(users.router, prefix="/users", tags=["users"])
-app.include_router(vibes.router, prefix="/vibes", tags=["vibes"])
-app.include_router(comments.router, prefix="", tags=["comments"]) # Prefix is handled inside for vibes
+app.include_router(dreams.router, prefix="/dreams", tags=["dreams"])
+app.include_router(comments.router, prefix="", tags=["comments"]) # Prefix is handled inside for dreams
 app.include_router(reviews.router, prefix="", tags=["reviews"])
 app.include_router(likes.router, prefix="", tags=["likes"])
 app.include_router(implementations.router, prefix="", tags=["implementations"])
@@ -28,4 +28,4 @@ app.include_router(media.router, prefix="/media", tags=["media"])
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to VibeHub API"}
+    return {"message": "Welcome to Dreamware API"}

@@ -58,7 +58,7 @@ TAGS = [
     "Portfolio",
     "AI-Native",
     "Prompt-to-App",
-    "Vibe Coding",
+    "Dream Coding",
     "Full-Stack AI",
     "Glassmorphism",
     "Neumorphism",

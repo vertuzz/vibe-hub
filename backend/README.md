@@ -1,6 +1,6 @@
-# VibeHub Backend
+# Dreamware Backend
 
-The backend for VibeHub, a visual-first aggregation platform for AI-generated software concepts ("Vibe Coding").
+The backend for Dreamware, a visual-first aggregation platform for AI-generated software concepts ("Vibe Coding").
 
 ## Tech Stack
 - **Python**: 3.13
@@ -13,39 +13,41 @@ The backend for VibeHub, a visual-first aggregation platform for AI-generated so
 - **Media**: [S3-Compatible Storage](https://aws.amazon.com/s3/) (AWS, Hetzner, MinIO) for image storage via presigned URLs
 - **Package Manager**: [uv](https://github.com/astral-sh/uv)
 - **Containerization**: Docker Compose (for local DB)
-- **Testing**: `pytest`
 
-## Core Features
-- **Auth**: Secure JWT-based authentication (Stable User IDs) with **Social Login (Google & GitHub)** support.
-- **Vibes**: Full lifecycle of AI app concepts (Create, Feed, Fork, Status).
-- **Media**: Integrated S3-compatible storage support (AWS, Hetzner, MinIO) using **Presigned URLs** for secure, direct client-side uploads.
-- **Social**: Comments, Vibe Checks (0-100% reviews), and Likes.
-- **Collaboration**: Implementation submissions and Official status linking.
-- **Social Graph**: User following and real-time-like notifications.
-- **Content Management**: Dynamic Tools and Tags for masonry feed filtering.
+*   **Framework:** FastAPI
+*   **Database:** PostgreSQL
+*   **ORM:** SQLAlchemy (Async)
+*   **Migrations:** Alembic
+*   **Containerization:** Docker & Docker Compose
 
 ## Getting Started
 
-### 1. Prerequisites
-- [uv](https://github.com/astral-sh/uv) installed.
-- Docker & Docker Compose installed.
+### Prerequisites
 
-### 2. Infrastructure
-Spin up the local PostgreSQL instance:
-```bash
-docker compose up -d
-```
+*   Docker and Docker Compose
+*   Python 3.10+ (if running locally without Docker)
 
-### 3. Setup Project
+### Running with Docker
+
+1.  Make sure you are in the root `vibe_hub` directory (repo name kept for now).
+2.  Run `docker-compose up --build`.
+
+The API will be available at `http://localhost:8000`.
+API Documentation (Swagger UI) at `http://localhost:8000/docs`.
+
+### Running Tests
+
+To run the tests in a simplified way using `uv`:
+
 ```bash
-uv sync
+uv run pytest
 ```
 
 ### 4. Environment Configuration
 The project uses `.env` files for configuration. Create a `backend/.env` file:
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/vibehub
-TEST_DATABASE_URL=postgresql://user:password@localhost:5432/vibehub_test
+DATABASE_URL=postgresql://user:password@localhost:5432/dreamware
+TEST_DATABASE_URL=postgresql://user:password@localhost:5432/dreamware_test
 SECRET_KEY=your_secret_key_here
 
 # S3 / S3-Compatible Storage
@@ -65,7 +67,7 @@ GITHUB_CLIENT_SECRET=your_github_client_secret
 ### 5. Database Initialization
 Run migrations to set up the database schema:
 ```bash
-export DATABASE_URL=postgresql://user:password@localhost:5432/vibehub
+export DATABASE_URL=postgresql://user:password@localhost:5432/dreamware
 uv run alembic upgrade head
 ```
 

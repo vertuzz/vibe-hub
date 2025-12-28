@@ -1,12 +1,12 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: vibehub-db
+    container_name: dreamware-db
     restart: always
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=vibehub
+      - POSTGRES_DB=dreamware
     ports:
       - "5432:5432"
     volumes:

@@ -7,12 +7,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "VibeHub"
+    PROJECT_NAME: str = "Dreamware"
+    API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-for-development-only")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
     
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/vibehub")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/dreamware")
     
     @property
     def async_database_url(self) -> str:

@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from typing import List
 
 from app.database import get_db
-from app.models import Collection, User, Vibe, collection_vibes
+from app.models import Collection, User, Dream, collection_dreams
 from app.schemas import schemas
 from app.routers.auth import get_current_user
 
@@ -23,10 +23,10 @@ async def create_collection(
         is_public=col_in.is_public,
         owner_id=current_user.id
     )
-    if col_in.vibe_ids:
-        result = await db.execute(select(Vibe).filter(Vibe.id.in_(col_in.vibe_ids)))
-        vibes = result.scalars().all()
-        db_col.vibes = vibes
+    if col_in.dream_ids:
+        result = await db.execute(select(Dream).filter(Dream.id.in_(col_in.dream_ids)))
+        dreams = result.scalars().all()
+        db_col.dreams = dreams
         
     db.add(db_col)
     await db.commit()
@@ -34,9 +34,9 @@ async def create_collection(
     result = await db.execute(
         select(Collection)
         .options(
-            selectinload(Collection.vibes).selectinload(Vibe.tools),
-            selectinload(Collection.vibes).selectinload(Vibe.tags),
-            selectinload(Collection.vibes).selectinload(Vibe.images)
+            selectinload(Collection.dreams).selectinload(Dream.tools),
+            selectinload(Collection.dreams).selectinload(Dream.tags),
+            selectinload(Collection.dreams).selectinload(Dream.images)
         )
         .filter(Collection.id == db_col.id)
     )
@@ -47,9 +47,9 @@ async def get_collection(col_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(Collection)
         .options(
-            selectinload(Collection.vibes).selectinload(Vibe.tools),
-            selectinload(Collection.vibes).selectinload(Vibe.tags),
-            selectinload(Collection.vibes).selectinload(Vibe.images)
+            selectinload(Collection.dreams).selectinload(Dream.tools),
+            selectinload(Collection.dreams).selectinload(Dream.tags),
+            selectinload(Collection.dreams).selectinload(Dream.images)
         )
         .filter(Collection.id == col_id)
     )
@@ -61,29 +61,29 @@ async def get_collection(col_id: int, db: AsyncSession = Depends(get_db)):
         pass
     return col
 
-@router.post("/{col_id}/vibes/{vibe_id}")
+@router.post("/{col_id}/dreams/{dream_id}")
 async def add_to_collection(
     col_id: int,
-    vibe_id: int,
+    dream_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
         select(Collection)
-        .options(selectinload(Collection.vibes))
+        .options(selectinload(Collection.dreams))
         .filter(Collection.id == col_id, Collection.owner_id == current_user.id)
     )
     col = result.scalars().first()
     if not col:
         raise HTTPException(status_code=404, detail="Collection not found")
     
-    result = await db.execute(select(Vibe).filter(Vibe.id == vibe_id))
-    vibe = result.scalars().first()
-    if not vibe:
-        raise HTTPException(status_code=404, detail="Vibe not found")
+    result = await db.execute(select(Dream).filter(Dream.id == dream_id))
+    dream = result.scalars().first()
+    if not dream:
+        raise HTTPException(status_code=404, detail="Dream not found")
     
-    if vibe not in col.vibes:
-        col.vibes.append(vibe)
+    if dream not in col.dreams:
+        col.dreams.append(dream)
         db.add(col)
         await db.commit()
         

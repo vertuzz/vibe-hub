@@ -3,99 +3,99 @@ from httpx import AsyncClient
 import pytest
 
 @pytest.mark.asyncio
-async def test_vibes_filtering_and_errors(client: AsyncClient, auth_headers: dict):
-    # Setup: Create tool, tag and vibes
+async def test_dreams_filtering_and_errors(client: AsyncClient, auth_headers: dict):
+    # Setup: Create tool, tag and dreams
     t_resp = await client.post("/tools/", json={"name": "Tailwind"})
     tool_id = t_resp.json()["id"]
     tag_resp = await client.post("/tags/", json={"name": "UI"})
     tag_id = tag_resp.json()["id"]
 
-    v1_resp = await client.post("/vibes/", json={"prompt_text": "V1", "tool_ids": [tool_id], "status": "Concept"}, headers=auth_headers)
+    v1_resp = await client.post("/dreams/", json={"prompt_text": "V1", "tool_ids": [tool_id], "status": "Concept"}, headers=auth_headers)
     v1 = v1_resp.json()
-    v2_resp = await client.post("/vibes/", json={"prompt_text": "V2", "tag_ids": [tag_id], "status": "WIP"}, headers=auth_headers)
+    v2_resp = await client.post("/dreams/", json={"prompt_text": "V2", "tag_ids": [tag_id], "status": "WIP"}, headers=auth_headers)
     v2 = v2_resp.json()
 
     # 1. Filter by tool
-    resp = await client.get(f"/vibes/?tool_id={tool_id}")
+    resp = await client.get(f"/dreams/?tool_id={tool_id}")
     assert len(resp.json()) >= 1
     assert any(v["id"] == v1["id"] for v in resp.json())
 
     # 2. Filter by tag
-    resp = await client.get(f"/vibes/?tag_id={tag_id}")
+    resp = await client.get(f"/dreams/?tag_id={tag_id}")
     assert len(resp.json()) >= 1
     assert any(v["id"] == v2["id"] for v in resp.json())
 
     # 3. Filter by status
-    resp = await client.get("/vibes/?status=WIP")
+    resp = await client.get("/dreams/?status=WIP")
     assert all(v["status"] == "WIP" for v in resp.json())
 
-    # 4. Error: Get non-existent vibe
-    resp = await client.get("/vibes/9999")
+    # 4. Error: Get non-existent dream
+    resp = await client.get("/dreams/9999")
     assert resp.status_code == 404
 
-    # 5. Error: Update non-existent vibe
-    resp = await client.patch("/vibes/9999", json={"prompt_text": "new"}, headers=auth_headers)
+    # 5. Error: Update non-existent dream
+    resp = await client.patch("/dreams/9999", json={"prompt_text": "new"}, headers=auth_headers)
     assert resp.status_code == 404
 
-    # 6. Error: Update others' vibe
-    # Register another user to own a vibe
+    # 6. Error: Update others' dream
+    # Register another user to own a dream
     await client.post("/auth/register", json={"username": "other", "email": "other@v.com", "password": "p"})
-    # Login as other to create a vibe
+    # Login as other to create a dream
     login_resp = await client.post("/auth/login", data={"username": "other", "password": "p"})
     other_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
-    other_vibe_resp = await client.post("/vibes/", json={"prompt_text": "Other Vibe"}, headers=other_headers)
-    other_vibe = other_vibe_resp.json()
+    other_dream_resp = await client.post("/dreams/", json={"prompt_text": "Other Dream"}, headers=other_headers)
+    other_dream = other_dream_resp.json()
 
-    # Try to update other_vibe with original auth_headers
-    resp = await client.patch(f"/vibes/{other_vibe['id']}", json={"prompt_text": "hacked"}, headers=auth_headers)
+    # Try to update other_dream with original auth_headers
+    resp = await client.patch(f"/dreams/{other_dream['id']}", json={"prompt_text": "hacked"}, headers=auth_headers)
     assert resp.status_code == 403
 
-    # 7. Error: Fork non-existent vibe
-    resp = await client.post("/vibes/9999/fork", headers=auth_headers)
+    # 7. Error: Fork non-existent dream
+    resp = await client.post("/dreams/9999/fork", headers=auth_headers)
     assert resp.status_code == 404
 
-    # 8. Error: Add image to others' vibe
-    resp = await client.post(f"/vibes/{other_vibe['id']}/images", json={"image_url": "http://evil.com"}, headers=auth_headers)
+    # 8. Error: Add image to others' dream
+    resp = await client.post(f"/dreams/{other_dream['id']}/images", json={"image_url": "http://evil.com"}, headers=auth_headers)
     assert resp.status_code == 403
 
-    # 9. Success: Update own vibe
-    resp = await client.patch(f"/vibes/{v1['id']}", json={"prompt_text": "Updated V1"}, headers=auth_headers)
+    # 9. Success: Update own dream
+    resp = await client.patch(f"/dreams/{v1['id']}", json={"prompt_text": "Updated V1"}, headers=auth_headers)
     assert resp.status_code == 200
     assert resp.json()["prompt_text"] == "Updated V1"
 
-    # 10. Success: Get vibe
-    resp = await client.get(f"/vibes/{v1['id']}")
+    # 10. Success: Get dream
+    resp = await client.get(f"/dreams/{v1['id']}")
     assert resp.status_code == 200
 
-    # 11. Success: Add image to own vibe
-    resp = await client.post(f"/vibes/{v1['id']}/images", json={"image_url": "http://myvibe.com/img.png"}, headers=auth_headers)
+    # 11. Success: Add image to own dream
+    resp = await client.post(f"/dreams/{v1['id']}/images", json={"image_url": "http://mydream.com/img.png"}, headers=auth_headers)
     assert resp.status_code == 200
 
 @pytest.mark.asyncio
 async def test_likes_errors_and_unlikes(client: AsyncClient, auth_headers: dict):
-    # Setup vibe
-    vibe_resp = await client.post("/vibes/", json={"prompt_text": "Like Me"}, headers=auth_headers)
-    vibe = vibe_resp.json()
-    vibe_id = vibe["id"]
+    # Setup dream
+    dream_resp = await client.post("/dreams/", json={"prompt_text": "Like Me"}, headers=auth_headers)
+    dream = dream_resp.json()
+    dream_id = dream["id"]
 
-    # 1. Like vibe
-    await client.post(f"/vibes/{vibe_id}/like", headers=auth_headers)
+    # 1. Like dream
+    await client.post(f"/dreams/{dream_id}/like", headers=auth_headers)
     
     # 2. Duplicate like (400)
-    resp = await client.post(f"/vibes/{vibe_id}/like", headers=auth_headers)
+    resp = await client.post(f"/dreams/{dream_id}/like", headers=auth_headers)
     assert resp.status_code == 400
     assert resp.json()["detail"] == "Already liked"
 
-    # 3. Unlike vibe
-    resp = await client.delete(f"/vibes/{vibe_id}/like", headers=auth_headers)
+    # 3. Unlike dream
+    resp = await client.delete(f"/dreams/{dream_id}/like", headers=auth_headers)
     assert resp.status_code == 200
     
     # 4. Unlike again (404)
-    resp = await client.delete(f"/vibes/{vibe_id}/like", headers=auth_headers)
+    resp = await client.delete(f"/dreams/{dream_id}/like", headers=auth_headers)
     assert resp.status_code == 404
 
     # 5. Like comment
-    comm_resp = await client.post(f"/vibes/{vibe_id}/comments", json={"content": "Liking this"}, headers=auth_headers)
+    comm_resp = await client.post(f"/dreams/{dream_id}/comments", json={"content": "Liking this"}, headers=auth_headers)
     comm = comm_resp.json()
     comm_id = comm["id"]
     resp = await client.post(f"/comments/{comm_id}/like", headers=auth_headers)
@@ -105,8 +105,8 @@ async def test_likes_errors_and_unlikes(client: AsyncClient, auth_headers: dict)
     resp = await client.post(f"/comments/{comm_id}/like", headers=auth_headers)
     assert resp.status_code == 400
 
-    # 7. Vibe not found for like
-    assert (await client.post("/vibes/9999/like", headers=auth_headers)).status_code == 404
+    # 7. Dream not found for like
+    assert (await client.post("/dreams/9999/like", headers=auth_headers)).status_code == 404
 
     # 8. Comment not found for like
     assert (await client.post("/comments/9999/like", headers=auth_headers)).status_code == 404
@@ -118,12 +118,12 @@ async def test_notifications_read(client: AsyncClient, auth_headers: dict):
     login_resp = await client.post("/auth/login", data={"username": "victim_n", "password": "p"})
     victim_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
     
-    # Victim creates a vibe
-    vibe_resp = await client.post("/vibes/", json={"prompt_text": "Notify me"}, headers=victim_headers)
-    vibe = vibe_resp.json()
+    # Victim creates a dream
+    dream_resp = await client.post("/dreams/", json={"prompt_text": "Notify me"}, headers=victim_headers)
+    dream = dream_resp.json()
 
-    # 2. Origin user (auth_headers) likes victim's vibe
-    await client.post(f"/vibes/{vibe['id']}/like", headers=auth_headers)
+    # 2. Origin user (auth_headers) likes victim's dream
+    await client.post(f"/dreams/{dream['id']}/like", headers=auth_headers)
 
     # 3. Check notification for victim
     n_resp = await client.get("/notifications/", headers=victim_headers)
@@ -145,9 +145,9 @@ async def test_notifications_read(client: AsyncClient, auth_headers: dict):
 
 @pytest.mark.asyncio
 async def test_reviews_and_comments_errors(client: AsyncClient, auth_headers: dict):
-    vibe_resp = await client.post("/vibes/", json={"prompt_text": "Err Vibe"}, headers=auth_headers)
-    vibe = vibe_resp.json()
-    vibe_id = vibe["id"]
+    dream_resp = await client.post("/dreams/", json={"prompt_text": "Err Dream"}, headers=auth_headers)
+    dream = dream_resp.json()
+    dream_id = dream["id"]
 
     # 1. Comment not found
     assert (await client.patch("/comments/9999", json={"content": "x"}, headers=auth_headers)).status_code == 404
@@ -157,7 +157,7 @@ async def test_reviews_and_comments_errors(client: AsyncClient, auth_headers: di
     await client.post("/auth/register", json={"username": "comm_owner", "email": "co@v.com", "password": "p"})
     login_resp = await client.post("/auth/login", data={"username": "comm_owner", "password": "p"})
     co_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
-    comm_resp = await client.post(f"/vibes/{vibe_id}/comments", json={"content": "Mine"}, headers=co_headers)
+    comm_resp = await client.post(f"/dreams/{dream_id}/comments", json={"content": "Mine"}, headers=co_headers)
     comm = comm_resp.json()
 
     assert (await client.patch(f"/comments/{comm['id']}", json={"content": "hacked"}, headers=auth_headers)).status_code == 403
@@ -167,8 +167,8 @@ async def test_reviews_and_comments_errors(client: AsyncClient, auth_headers: di
     assert resp.status_code == 200
     assert resp.json()["content"] == "Actually mine"
 
-    # 4. Success: Get vibe comments
-    resp = await client.get(f"/vibes/{vibe_id}/comments")
+    # 4. Success: Get dream comments
+    resp = await client.get(f"/dreams/{dream_id}/comments")
     assert resp.status_code == 200
     assert len(resp.json()) >= 1
 
@@ -176,30 +176,30 @@ async def test_reviews_and_comments_errors(client: AsyncClient, auth_headers: di
     resp = await client.delete(f"/comments/{comm['id']}", headers=co_headers)
     assert resp.status_code == 204
 
-    # 6. Error: Create comment on missing vibe
-    resp = await client.post("/vibes/9999/comments", json={"content": "lost"}, headers=auth_headers)
+    # 6. Error: Create comment on missing dream
+    resp = await client.post("/dreams/9999/comments", json={"content": "lost"}, headers=auth_headers)
     assert resp.status_code == 404
 
     # 7. Error: Delete others' comment
-    comm2_resp = await client.post(f"/vibes/{vibe_id}/comments", json={"content": "Another"}, headers=auth_headers)
+    comm2_resp = await client.post(f"/dreams/{dream_id}/comments", json={"content": "Another"}, headers=auth_headers)
     comm2 = comm2_resp.json()
     assert (await client.delete(f"/comments/{comm2['id']}", headers= co_headers)).status_code == 403
 
 @pytest.mark.asyncio
 async def test_collections_edge_cases(client: AsyncClient, auth_headers: dict):
-    vibe_resp = await client.post("/vibes/", json={"prompt_text": "In Col"}, headers=auth_headers)
-    vibe = vibe_resp.json()
+    dream_resp = await client.post("/dreams/", json={"prompt_text": "In Col"}, headers=auth_headers)
+    dream = dream_resp.json()
     
     # 1. Create collection
-    col_resp = await client.post("/collections/", json={"name": "My Pack", "vibe_ids": [vibe["id"]]}, headers=auth_headers)
+    col_resp = await client.post("/collections/", json={"name": "My Pack", "dream_ids": [dream["id"]]}, headers=auth_headers)
     col = col_resp.json()
     
-    # 2. Add non-existent vibe to collection
-    resp = await client.post(f"/collections/{col['id']}/vibes/9999", headers=auth_headers)
+    # 2. Add non-existent dream to collection
+    resp = await client.post(f"/collections/{col['id']}/dreams/9999", headers=auth_headers)
     assert resp.status_code == 404
 
     # 3. Add to non-existent collection
-    resp = await client.post(f"/collections/9999/vibes/{vibe['id']}", headers=auth_headers)
+    resp = await client.post(f"/collections/9999/dreams/{dream['id']}", headers=auth_headers)
     assert resp.status_code == 404
 
     # 4. Add to someone else's collection
@@ -207,7 +207,7 @@ async def test_collections_edge_cases(client: AsyncClient, auth_headers: dict):
     login_resp = await client.post("/auth/login", data={"username": "col_owner", "password": "p"})
     col_owner_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
     
-    resp = await client.post(f"/collections/{col['id']}/vibes/{vibe['id']}", headers=col_owner_headers)
+    resp = await client.post(f"/collections/{col['id']}/dreams/{dream['id']}", headers=col_owner_headers)
     assert resp.status_code == 404 # It returns 404 because query filters by owner_id
 
     # 5. Get private collection
@@ -218,16 +218,16 @@ async def test_collections_edge_cases(client: AsyncClient, auth_headers: dict):
 
 @pytest.mark.asyncio
 async def test_reviews_comprehensive(client: AsyncClient, auth_headers: dict):
-    vibe_resp = await client.post("/vibes/", json={"prompt_text": "Review Hub"}, headers=auth_headers)
-    vibe = vibe_resp.json()
-    vibe_id = vibe["id"]
+    dream_resp = await client.post("/dreams/", json={"prompt_text": "Review Hub"}, headers=auth_headers)
+    dream = dream_resp.json()
+    dream_id = dream["id"]
 
     # 1. Create review
-    review_resp = await client.post(f"/vibes/{vibe_id}/reviews", json={"score": 90, "comment": "Good"}, headers=auth_headers)
+    review_resp = await client.post(f"/dreams/{dream_id}/reviews", json={"score": 90, "comment": "Good"}, headers=auth_headers)
     review = review_resp.json()
     
     # 2. Duplicate review
-    resp = await client.post(f"/vibes/{vibe_id}/reviews", json={"score": 80}, headers=auth_headers)
+    resp = await client.post(f"/dreams/{dream_id}/reviews", json={"score": 80}, headers=auth_headers)
     assert resp.status_code == 400
 
     # 3. Delete review - Unauthorized
@@ -273,20 +273,20 @@ async def test_follows_and_impls_edge_cases(client: AsyncClient, auth_headers: d
     # 4. Unfollow not following
     assert (await client.delete("/users/9999/follow", headers=auth_headers)).status_code == 404
 
-    # 5. Implementation - Vibe not found
-    assert (await client.post("/vibes/9999/implementations", json={"url": "http://x.com"}, headers=auth_headers)).status_code == 404
+    # 5. Implementation - Dream not found
+    assert (await client.post("/dreams/9999/implementations", json={"url": "http://x.com"}, headers=auth_headers)).status_code == 404
 
     # 6. Mark official - Not found
     assert (await client.patch("/implementations/9999/official", headers=auth_headers)).status_code == 404
 
     # 7. Mark official - Unauthorized
-    vibe_resp = await client.post("/vibes/", json={"prompt_text": "Official Vibe"}, headers=auth_headers)
-    vibe = vibe_resp.json()
+    dream_resp = await client.post("/dreams/", json={"prompt_text": "Official Dream"}, headers=auth_headers)
+    dream = dream_resp.json()
     # Someone else implements it
     other_headers = {"Authorization": f"Bearer {star['access_token']}"}
-    impl_resp = await client.post(f"/vibes/{vibe['id']}/implementations", json={"url": "http://impl.com"}, headers=other_headers)
+    impl_resp = await client.post(f"/dreams/{dream['id']}/implementations", json={"url": "http://impl.com"}, headers=other_headers)
     impl = impl_resp.json()
     
-    # Other user tries to mark it official (only vibe creator can)
+    # Other user tries to mark it official (only dream creator can)
     resp = await client.patch(f"/implementations/{impl['id']}/official", headers=other_headers)
     assert resp.status_code == 403
