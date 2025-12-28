@@ -10,7 +10,7 @@ The backend for VibeHub, a visual-first aggregation platform for AI-generated so
 - **Migrations**: Alembic
 - **Security**: [JWT](https://pyjwt.readthedocs.io/) (via `python-jose`) & `bcrypt`
 - **HTTP Client**: [httpx](https://www.python-httpx.org/) for OAuth and external API calls
-- **Media**: [Cloudinary](https://cloudinary.com/) for image storage and transformations
+- **Media**: [AWS S3](https://aws.amazon.com/s3/) for image storage
 - **Package Manager**: [uv](https://github.com/astral-sh/uv)
 - **Containerization**: Docker Compose (for local DB)
 - **Testing**: `pytest`
@@ -18,7 +18,7 @@ The backend for VibeHub, a visual-first aggregation platform for AI-generated so
 ## Core Features
 - **Auth**: Secure JWT-based authentication (Stable User IDs) with **Social Login (Google & GitHub)** support.
 - **Vibes**: Full lifecycle of AI app concepts (Create, Feed, Fork, Status).
-- **Media**: Integrated Cloudinary support for image uploads and management.
+- **Media**: Integrated AWS S3 support for image uploads.
 - **Social**: Comments, Vibe Checks (0-100% reviews), and Likes.
 - **Collaboration**: Implementation submissions and Official status linking.
 - **Social Graph**: User following and real-time-like notifications.
@@ -48,10 +48,11 @@ DATABASE_URL=postgresql://user:password@localhost:5432/vibehub
 TEST_DATABASE_URL=postgresql://user:password@localhost:5432/vibehub_test
 SECRET_KEY=your_secret_key_here
 
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
+# AWS S3
+S3_BUCKET=your_bucket_name
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+AWS_REGION=us-east-1
 
 # OAuth
 GOOGLE_CLIENT_ID=your_google_client_id
