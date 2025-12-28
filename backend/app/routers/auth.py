@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from datetime import timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -17,7 +19,7 @@ router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-async def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
+async def get_current_user(db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -32,17 +34,23 @@ async def get_current_user(db: Session = Depends(get_db), token: str = Depends(o
     except (JWTError, ValueError):
         raise credentials_exception
     
-    user = db.query(User).filter(User.id == user_id).first()
+    result = await db.execute(
+        select(User).options(selectinload(User.links)).filter(User.id == user_id)
+    )
+    user = result.scalars().first()
     if user is None:
         raise credentials_exception
     return user
 
 @router.post("/register", response_model=schemas.User)
-def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
+async def register(user_in: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
     # Check if user already exists
-    user = db.query(User).filter(
-        (User.username == user_in.username) | (User.email == user_in.email)
-    ).first()
+    result = await db.execute(
+        select(User).filter(
+            (User.username == user_in.username) | (User.email == user_in.email)
+        )
+    )
+    user = result.scalars().first()
     if user:
         raise HTTPException(
             status_code=400,
@@ -56,13 +64,18 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
         reputation_score=0.0
     )
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    await db.commit()
+    # Reload with eager loading for serialization
+    result = await db.execute(
+        select(User).options(selectinload(User.links)).filter(User.id == db_user.id)
+    )
+    db_user = result.scalars().first()
     return db_user
 
 @router.post("/login", response_model=schemas.Token)
-def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
-    user = db.query(User).filter(User.username == form_data.username).first()
+async def login(db: AsyncSession = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
+    result = await db.execute(select(User).filter(User.username == form_data.username))
+    user = result.scalars().first()
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -78,12 +91,12 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
 
 
 @router.get("/me", response_model=schemas.User)
-def read_users_me(current_user: User = Depends(get_current_user)):
+async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
 @router.post("/google", response_model=schemas.Token)
-async def google_login(request: schemas.SocialLoginRequest, db: Session = Depends(get_db)):
+async def google_login(request: schemas.SocialLoginRequest, db: AsyncSession = Depends(get_db)):
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
     
@@ -120,9 +133,15 @@ async def google_login(request: schemas.SocialLoginRequest, db: Session = Depend
         name = user_info.get("name") or email.split("@")[0]
 
     # Find or create user
-    user = db.query(User).filter(User.google_id == google_id).first()
+    result = await db.execute(
+        select(User).options(selectinload(User.links)).filter(User.google_id == google_id)
+    )
+    user = result.scalars().first()
     if not user:
-        user = db.query(User).filter(User.email == email).first()
+        result = await db.execute(
+            select(User).options(selectinload(User.links)).filter(User.email == email)
+        )
+        user = result.scalars().first()
         if user:
             user.google_id = google_id
             if not user.avatar:
@@ -132,7 +151,10 @@ async def google_login(request: schemas.SocialLoginRequest, db: Session = Depend
             base_username = name.replace(" ", "").lower()
             username = base_username
             counter = 1
-            while db.query(User).filter(User.username == username).first():
+            while True:
+                result = await db.execute(select(User).filter(User.username == username))
+                if not result.scalars().first():
+                    break
                 username = f"{base_username}{counter}"
                 counter += 1
             
@@ -144,8 +166,12 @@ async def google_login(request: schemas.SocialLoginRequest, db: Session = Depend
                 reputation_score=0.0
             )
             db.add(user)
-        db.commit()
-        db.refresh(user)
+        await db.commit()
+        # Reload with eager loading
+        result = await db.execute(
+            select(User).options(selectinload(User.links)).filter(User.id == user.id)
+        )
+        user = result.scalars().first()
 
     access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
     jwt_token = security.create_access_token(
@@ -155,7 +181,7 @@ async def google_login(request: schemas.SocialLoginRequest, db: Session = Depend
 
 
 @router.post("/github", response_model=schemas.Token)
-async def github_login(request: schemas.SocialLoginRequest, db: Session = Depends(get_db)):
+async def github_login(request: schemas.SocialLoginRequest, db: AsyncSession = Depends(get_db)):
     if not settings.GITHUB_CLIENT_ID or not settings.GITHUB_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="GitHub OAuth not configured")
 
@@ -207,9 +233,15 @@ async def github_login(request: schemas.SocialLoginRequest, db: Session = Depend
                 raise HTTPException(status_code=400, detail="Failed to get GitHub user email")
 
     # Find or create user
-    user = db.query(User).filter(User.github_id == github_id).first()
+    result = await db.execute(
+        select(User).options(selectinload(User.links)).filter(User.github_id == github_id)
+    )
+    user = result.scalars().first()
     if not user:
-        user = db.query(User).filter(User.email == email).first()
+        result = await db.execute(
+            select(User).options(selectinload(User.links)).filter(User.email == email)
+        )
+        user = result.scalars().first()
         if user:
             user.github_id = github_id
             if not user.avatar:
@@ -219,7 +251,10 @@ async def github_login(request: schemas.SocialLoginRequest, db: Session = Depend
             base_username = username_github.lower()
             username = base_username
             counter = 1
-            while db.query(User).filter(User.username == username).first():
+            while True:
+                result = await db.execute(select(User).filter(User.username == username))
+                if not result.scalars().first():
+                    break
                 username = f"{base_username}{counter}"
                 counter += 1
                 
@@ -231,8 +266,12 @@ async def github_login(request: schemas.SocialLoginRequest, db: Session = Depend
                 reputation_score=0.0
             )
             db.add(user)
-        db.commit()
-        db.refresh(user)
+        await db.commit()
+        # Reload with eager loading
+        result = await db.execute(
+            select(User).options(selectinload(User.links)).filter(User.id == user.id)
+        )
+        user = result.scalars().first()
 
     access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
     jwt_token = security.create_access_token(

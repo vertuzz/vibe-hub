@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from typing import List
 
 from app.database import get_db
@@ -10,10 +12,10 @@ from app.routers.auth import get_current_user
 router = APIRouter()
 
 @router.post("/", response_model=schemas.Collection)
-def create_collection(
+async def create_collection(
     col_in: schemas.CollectionCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     db_col = Collection(
         name=col_in.name,
@@ -22,17 +24,36 @@ def create_collection(
         owner_id=current_user.id
     )
     if col_in.vibe_ids:
-        vibes = db.query(Vibe).filter(Vibe.id.in_(col_in.vibe_ids)).all()
+        result = await db.execute(select(Vibe).filter(Vibe.id.in_(col_in.vibe_ids)))
+        vibes = result.scalars().all()
         db_col.vibes = vibes
         
     db.add(db_col)
-    db.commit()
-    db.refresh(db_col)
-    return db_col
+    await db.commit()
+    # Reload with eager loading for nested relationships
+    result = await db.execute(
+        select(Collection)
+        .options(
+            selectinload(Collection.vibes).selectinload(Vibe.tools),
+            selectinload(Collection.vibes).selectinload(Vibe.tags),
+            selectinload(Collection.vibes).selectinload(Vibe.images)
+        )
+        .filter(Collection.id == db_col.id)
+    )
+    return result.scalars().first()
 
 @router.get("/{col_id}", response_model=schemas.Collection)
-def get_collection(col_id: int, db: Session = Depends(get_db)):
-    col = db.query(Collection).filter(Collection.id == col_id).first()
+async def get_collection(col_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Collection)
+        .options(
+            selectinload(Collection.vibes).selectinload(Vibe.tools),
+            selectinload(Collection.vibes).selectinload(Vibe.tags),
+            selectinload(Collection.vibes).selectinload(Vibe.images)
+        )
+        .filter(Collection.id == col_id)
+    )
+    col = result.scalars().first()
     if not col:
         raise HTTPException(status_code=404, detail="Collection not found")
     if not col.is_public:
@@ -41,23 +62,29 @@ def get_collection(col_id: int, db: Session = Depends(get_db)):
     return col
 
 @router.post("/{col_id}/vibes/{vibe_id}")
-def add_to_collection(
+async def add_to_collection(
     col_id: int,
     vibe_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    col = db.query(Collection).filter(Collection.id == col_id, Collection.owner_id == current_user.id).first()
+    result = await db.execute(
+        select(Collection)
+        .options(selectinload(Collection.vibes))
+        .filter(Collection.id == col_id, Collection.owner_id == current_user.id)
+    )
+    col = result.scalars().first()
     if not col:
         raise HTTPException(status_code=404, detail="Collection not found")
     
-    vibe = db.query(Vibe).filter(Vibe.id == vibe_id).first()
+    result = await db.execute(select(Vibe).filter(Vibe.id == vibe_id))
+    vibe = result.scalars().first()
     if not vibe:
         raise HTTPException(status_code=404, detail="Vibe not found")
     
     if vibe not in col.vibes:
         col.vibes.append(vibe)
         db.add(col)
-        db.commit()
+        await db.commit()
         
     return {"message": "Added"}

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 from typing import List
 
 from app.database import get_db
@@ -11,18 +11,20 @@ from app.routers.auth import get_current_user
 router = APIRouter()
 
 @router.get("/vibes/{vibe_id}/reviews", response_model=List[schemas.Review])
-def get_vibe_reviews(vibe_id: int, db: Session = Depends(get_db)):
-    return db.query(Review).filter(Review.vibe_id == vibe_id).all()
+async def get_vibe_reviews(vibe_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Review).filter(Review.vibe_id == vibe_id))
+    return result.scalars().all()
 
 @router.post("/vibes/{vibe_id}/reviews", response_model=schemas.Review)
-def create_review(
+async def create_review(
     vibe_id: int,
     review_in: schemas.ReviewCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     # Check if user already reviewed
-    existing = db.query(Review).filter(Review.vibe_id == vibe_id, Review.user_id == current_user.id).first()
+    result = await db.execute(select(Review).filter(Review.vibe_id == vibe_id, Review.user_id == current_user.id))
+    existing = result.scalars().first()
     if existing:
         raise HTTPException(status_code=400, detail="You already reviewed this vibe")
     
@@ -33,27 +35,29 @@ def create_review(
         comment=review_in.comment
     )
     db.add(db_review)
-    db.commit()
-    db.refresh(db_review)
+    await db.commit()
+    await db.refresh(db_review)
     return db_review
 
 @router.get("/vibes/{vibe_id}/avg-score")
-def get_avg_score(vibe_id: int, db: Session = Depends(get_db)):
-    avg = db.query(func.avg(Review.score)).filter(Review.vibe_id == vibe_id).scalar()
+async def get_avg_score(vibe_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(func.avg(Review.score)).filter(Review.vibe_id == vibe_id))
+    avg = result.scalar()
     return {"vibe_id": vibe_id, "average_score": avg or 0.0}
 
 @router.delete("/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_review(
+async def delete_review(
     review_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    db_review = db.query(Review).filter(Review.id == review_id).first()
+    result = await db.execute(select(Review).filter(Review.id == review_id))
+    db_review = result.scalars().first()
     if not db_review:
         raise HTTPException(status_code=404, detail="Review not found")
     if db_review.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    db.delete(db_review)
-    db.commit()
+    await db.delete(db_review)
+    await db.commit()
     return None

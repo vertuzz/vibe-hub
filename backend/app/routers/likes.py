@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
@@ -9,12 +10,13 @@ from app.routers.auth import get_current_user
 router = APIRouter()
 
 @router.post("/vibes/{vibe_id}/like")
-def like_vibe(
+async def like_vibe(
     vibe_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    vibe = db.query(Vibe).filter(Vibe.id == vibe_id).first()
+    result = await db.execute(select(Vibe).filter(Vibe.id == vibe_id))
+    vibe = result.scalars().first()
     if not vibe:
         raise HTTPException(status_code=404, detail="Vibe not found")
     
@@ -22,7 +24,7 @@ def like_vibe(
     db.add(db_like)
     
     try:
-        db.commit()
+        await db.commit()
         # Notify
         if vibe.creator_id != current_user.id:
             notification = Notification(
@@ -32,34 +34,36 @@ def like_vibe(
                 link=f"/vibes/{vibe_id}"
             )
             db.add(notification)
-            db.commit()
+            await db.commit()
     except IntegrityError:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=400, detail="Already liked")
     
     return {"message": "Liked"}
 
 @router.delete("/vibes/{vibe_id}/like")
-def unlike_vibe(
+async def unlike_vibe(
     vibe_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    db_like = db.query(Like).filter(Like.vibe_id == vibe_id, Like.user_id == current_user.id).first()
+    result = await db.execute(select(Like).filter(Like.vibe_id == vibe_id, Like.user_id == current_user.id))
+    db_like = result.scalars().first()
     if not db_like:
         raise HTTPException(status_code=404, detail="Like not found")
     
-    db.delete(db_like)
-    db.commit()
+    await db.delete(db_like)
+    await db.commit()
     return {"message": "Unliked"}
 
 @router.post("/comments/{comment_id}/like")
-def like_comment(
+async def like_comment(
     comment_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    result = await db.execute(select(Comment).filter(Comment.id == comment_id))
+    comment = result.scalars().first()
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
     
@@ -71,9 +75,9 @@ def like_comment(
     db.add(comment)
     
     try:
-        db.commit()
+        await db.commit()
     except IntegrityError:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=400, detail="Already liked")
         
     return {"message": "Liked"}
