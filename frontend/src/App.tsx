@@ -1,26 +1,27 @@
-import CountBtn from "~/components/count-btn";
-import ReactSVG from "~/assets/react.svg";
-import { Badge } from "~/components/ui/badge";
+import { Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import CreateDream from "./pages/CreateDream";
+import ViewDream from "./pages/ViewDream";
+import Login from "./pages/Login";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
-    <main className="flex flex-col items-center justify-center h-screen">
-      <div className="flex flex-col items-center gap-y-4">
-        <div className="inline-flex items-center gap-x-4">
-          <img src={ReactSVG} alt="React Logo" className="w-32" />
-          <span className="text-6xl">+</span>
-          <img src={"/vite.svg"} alt="Vite Logo" className="w-32" />
-        </div>
-        <a
-          href="https://ui.shadcn.com"
-          rel="noopener noreferrer nofollow"
-          target="_blank"
-        >
-          <Badge variant="outline">shadcn/ui</Badge>
-        </a>
-        <CountBtn />
-      </div>
-    </main>
+    <div className="container mx-auto p-4">
+      <nav className="mb-8 flex gap-4">
+        <a href="/">Home</a>
+        <a href="/dreams/create">Create</a>
+        <a href="/login">Login</a>
+        <a href="/profile">Profile</a>
+      </nav>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/dreams/create" element={<CreateDream />} />
+        <Route path="/dreams/:id" element={<ViewDream />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/profile" element={<Profile />} />
+      </Routes>
+    </div>
   );
 }
 
