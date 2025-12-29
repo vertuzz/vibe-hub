@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func, distinct
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
@@ -21,28 +21,40 @@ async def get_dreams(
     tag: Optional[str] = None,
     search: Optional[str] = None,
     status: Optional[DreamStatus] = None,
-    sort_by: str = Query("created_at", enum=["created_at", "score", "likes"]),
+    sort_by: str = Query("trending", enum=["trending", "newest", "top_rated", "likes"]),
     db: AsyncSession = Depends(get_db)
 ):
-    query = select(Dream).options(selectinload(Dream.tools), selectinload(Dream.tags), selectinload(Dream.media))
+    # Base query with eager loading of media, tools, and tags
+    query = select(Dream).options(
+        selectinload(Dream.tools), 
+        selectinload(Dream.tags), 
+        selectinload(Dream.media)
+    )
     
+    # 1. Joins for filtering and sorting
+    if tool_id or tool:
+        query = query.join(Dream.tools)
+    if tag_id or tag:
+        query = query.join(Dream.tags)
+        
+    # 2. Apply Filters
     if tool_id:
-        query = query.join(Dream.tools).filter(Tool.id == tool_id)
+        query = query.filter(Tool.id == tool_id)
     elif tool:
         tool_names = [t.strip() for t in tool.split(",") if t.strip()]
         if len(tool_names) > 1:
-            query = query.join(Dream.tools).filter(Tool.name.in_(tool_names))
+            query = query.filter(Tool.name.in_(tool_names))
         else:
-            query = query.join(Dream.tools).filter(Tool.name.ilike(f"%{tool_names[0]}%"))
+            query = query.filter(Tool.name.ilike(f"%{tool_names[0]}%"))
         
     if tag_id:
-        query = query.join(Dream.tags).filter(Tag.id == tag_id)
+        query = query.filter(Tag.id == tag_id)
     elif tag:
         tag_names = [t.strip() for t in tag.split(",") if t.strip()]
         if len(tag_names) > 1:
-            query = query.join(Dream.tags).filter(Tag.name.in_(tag_names))
+            query = query.filter(Tag.name.in_(tag_names))
         else:
-            query = query.join(Dream.tags).filter(Tag.name.ilike(f"%{tag_names[0]}%"))
+            query = query.filter(Tag.name.ilike(f"%{tag_names[0]}%"))
         
     if search:
         query = query.filter(
@@ -53,9 +65,39 @@ async def get_dreams(
     if status:
         query = query.filter(Dream.status == status)
     
-    query = query.distinct()
+    # 3. Apply Sorting & Grouping
+    # We always group by Dream.id to avoid duplicates from many-to-many joins
+    query = query.group_by(Dream.id)
     
-    if sort_by == "created_at":
+    if sort_by == "trending":
+        # Trending = (Likes + Comments * 2) / (Age + 2)^1.8
+        from app.models import Like, Comment
+        query = query.outerjoin(Dream.likes).outerjoin(Dream.comments)
+        
+        likes_count = func.count(distinct(Like.id))
+        comments_count = func.count(distinct(Comment.id))
+        age_in_hours = func.extract('epoch', func.now() - Dream.created_at) / 3600
+        
+        # Gravity algorithm
+        trending_score = (likes_count + (comments_count * 2) + 1) / func.power(age_in_hours + 2, 1.8)
+        query = query.order_by(desc(trending_score))
+        
+    elif sort_by == "top_rated":
+        from app.models import Review
+        query = query.outerjoin(Dream.reviews)
+        # Average score, default to 0 if no reviews
+        avg_score = func.coalesce(func.avg(Review.score), 0)
+        query = query.order_by(desc(avg_score), desc(Dream.created_at))
+        
+    elif sort_by == "likes":
+        from app.models import Like
+        query = query.outerjoin(Dream.likes)
+        query = query.order_by(desc(func.count(distinct(Like.id))), desc(Dream.created_at))
+        
+    elif sort_by == "newest":
+        query = query.order_by(desc(Dream.created_at))
+    
+    else: # Default fallback to created_at
         query = query.order_by(desc(Dream.created_at))
         
     query = query.offset(skip).limit(limit)
