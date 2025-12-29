@@ -5,7 +5,15 @@ export interface User {
     full_name?: string;
     is_active: boolean;
     profile_image_url?: string;
+    avatar?: string;
     bio?: string;
+    reputation_score?: number;
+}
+
+export interface DreamCreator {
+    id: number;
+    username: string;
+    avatar?: string;
 }
 
 export interface Dream {
@@ -14,16 +22,19 @@ export interface Dream {
     prompt_text?: string;
     prd_text?: string;
     extra_specs?: any;
-    status: string;
+    status: 'Concept' | 'WIP' | 'Live';
     app_url?: string;
     youtube_url?: string;
     is_agent_submitted: boolean;
     creator_id: number;
+    creator?: DreamCreator;
     created_at: string;
-    updated_at: string;
+    updated_at?: string;
     tools?: Tool[];
     tags?: Tag[];
     media?: DreamMedia[];
+    likes_count?: number;
+    comments_count?: number;
 }
 
 export interface Tool {
@@ -42,9 +53,7 @@ export interface Tag {
 export interface DreamMedia {
     id: number;
     dream_id: number;
-    media_type: string;
-    url: string;
-    caption?: string;
+    media_url: string;
 }
 
 export interface DreamCreate {

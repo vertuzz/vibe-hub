@@ -53,6 +53,13 @@ class Tag(TagBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
 
+# Dream Creator (for embedding in Dream)
+class DreamCreator(BaseModel):
+    id: int
+    username: str
+    avatar: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
 # Dream Media
 class DreamMediaBase(BaseModel):
     media_url: str
@@ -96,6 +103,9 @@ class Dream(DreamBase):
     media: List[DreamMedia] = []
     tools: List[Tool] = []
     tags: List[Tag] = []
+    creator: Optional[DreamCreator] = None
+    likes_count: int = 0
+    comments_count: int = 0
     model_config = ConfigDict(from_attributes=True)
 
 # Implementation

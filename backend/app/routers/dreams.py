@@ -5,11 +5,46 @@ from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
 from app.database import get_db
-from app.models import Dream, User, Tool, Tag, DreamMedia, DreamStatus, dream_tools, dream_tags
+from app.models import Dream, User, Tool, Tag, DreamMedia, DreamStatus, Like, Comment, Review
 from app.schemas import schemas
 from app.routers.auth import get_current_user
 
 router = APIRouter()
+
+
+async def get_dream_counts(db: AsyncSession, dream_id: int) -> tuple[int, int]:
+    """Get likes and comments counts for a single dream."""
+    likes_result = await db.execute(
+        select(func.count(Like.id)).filter(Like.dream_id == dream_id)
+    )
+    comments_result = await db.execute(
+        select(func.count(Comment.id)).filter(Comment.dream_id == dream_id)
+    )
+    return likes_result.scalar() or 0, comments_result.scalar() or 0
+
+
+def dream_to_schema(dream: Dream, likes_count: int = 0, comments_count: int = 0) -> schemas.Dream:
+    """Convert Dream ORM object to dict with computed fields"""
+    return {
+        "id": dream.id,
+        "title": dream.title,
+        "prompt_text": dream.prompt_text,
+        "prd_text": dream.prd_text,
+        "extra_specs": dream.extra_specs,
+        "status": dream.status,
+        "app_url": dream.app_url,
+        "youtube_url": dream.youtube_url,
+        "is_agent_submitted": dream.is_agent_submitted,
+        "creator_id": dream.creator_id,
+        "parent_dream_id": dream.parent_dream_id,
+        "created_at": dream.created_at,
+        "media": dream.media,
+        "tools": dream.tools,
+        "tags": dream.tags,
+        "creator": dream.creator,
+        "likes_count": likes_count,
+        "comments_count": comments_count,
+    }
 
 @router.get("/", response_model=List[schemas.Dream])
 async def get_dreams(
@@ -24,11 +59,12 @@ async def get_dreams(
     sort_by: str = Query("trending", enum=["trending", "newest", "top_rated", "likes"]),
     db: AsyncSession = Depends(get_db)
 ):
-    # Base query with eager loading of media, tools, and tags
+    # Base query with eager loading of media, tools, tags and creator
     query = select(Dream).options(
         selectinload(Dream.tools), 
         selectinload(Dream.tags), 
-        selectinload(Dream.media)
+        selectinload(Dream.media),
+        selectinload(Dream.creator)
     )
     
     # 1. Joins for filtering and sorting
@@ -58,6 +94,7 @@ async def get_dreams(
         
     if search:
         query = query.filter(
+            (Dream.title.ilike(f"%{search}%")) |
             (Dream.prompt_text.ilike(f"%{search}%")) | 
             (Dream.prd_text.ilike(f"%{search}%"))
         )
@@ -71,7 +108,6 @@ async def get_dreams(
     
     if sort_by == "trending":
         # Trending = (Likes + Comments * 2) / (Age + 2)^1.8
-        from app.models import Like, Comment
         query = query.outerjoin(Dream.likes).outerjoin(Dream.comments)
         
         likes_count = func.count(distinct(Like.id))
@@ -90,7 +126,6 @@ async def get_dreams(
         query = query.order_by(desc(avg_score), desc(Dream.created_at))
         
     elif sort_by == "likes":
-        from app.models import Like
         query = query.outerjoin(Dream.likes)
         query = query.order_by(desc(func.count(distinct(Like.id))), desc(Dream.created_at))
         
@@ -102,7 +137,40 @@ async def get_dreams(
         
     query = query.offset(skip).limit(limit)
     result = await db.execute(query)
-    return result.scalars().all()
+    dreams = result.scalars().all()
+    
+    # Get counts for all dreams in a single query
+    dream_ids = [d.id for d in dreams]
+    
+    if dream_ids:
+        # Get likes counts
+        likes_result = await db.execute(
+            select(Like.dream_id, func.count(Like.id))
+            .filter(Like.dream_id.in_(dream_ids))
+            .group_by(Like.dream_id)
+        )
+        likes_map = dict(likes_result.all())
+        
+        # Get comments counts
+        comments_result = await db.execute(
+            select(Comment.dream_id, func.count(Comment.id))
+            .filter(Comment.dream_id.in_(dream_ids))
+            .group_by(Comment.dream_id)
+        )
+        comments_map = dict(comments_result.all())
+    else:
+        likes_map = {}
+        comments_map = {}
+    
+    # Convert to response with counts
+    return [
+        dream_to_schema(
+            dream, 
+            likes_count=likes_map.get(dream.id, 0),
+            comments_count=comments_map.get(dream.id, 0)
+        )
+        for dream in dreams
+    ]
 
 @router.post("/", response_model=schemas.Dream)
 async def create_dream(
@@ -138,22 +206,27 @@ async def create_dream(
     # Reload with eager loading
     result = await db.execute(
         select(Dream)
-        .options(selectinload(Dream.tools), selectinload(Dream.tags), selectinload(Dream.media))
+        .options(selectinload(Dream.tools), selectinload(Dream.tags), selectinload(Dream.media), selectinload(Dream.creator))
         .filter(Dream.id == db_dream.id)
     )
-    return result.scalars().first()
+    dream = result.scalars().first()
+    return dream_to_schema(dream, likes_count=0, comments_count=0)
 
 @router.get("/{dream_id}", response_model=schemas.Dream)
 async def get_dream(dream_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(Dream)
-        .options(selectinload(Dream.tools), selectinload(Dream.tags), selectinload(Dream.media))
+        .options(selectinload(Dream.tools), selectinload(Dream.tags), selectinload(Dream.media), selectinload(Dream.creator))
         .filter(Dream.id == dream_id)
     )
     dream = result.scalars().first()
     if not dream:
         raise HTTPException(status_code=404, detail="Dream not found")
-    return dream
+    
+    # Get counts
+    likes_count, comments_count = await get_dream_counts(db, dream_id)
+    
+    return dream_to_schema(dream, likes_count=likes_count, comments_count=comments_count)
 
 @router.patch("/{dream_id}", response_model=schemas.Dream)
 async def update_dream(
@@ -164,7 +237,7 @@ async def update_dream(
 ):
     result = await db.execute(
         select(Dream)
-        .options(selectinload(Dream.tools), selectinload(Dream.tags), selectinload(Dream.media))
+        .options(selectinload(Dream.tools), selectinload(Dream.tags), selectinload(Dream.media), selectinload(Dream.creator))
         .filter(Dream.id == dream_id)
     )
     db_dream = result.scalars().first()
@@ -182,10 +255,15 @@ async def update_dream(
     # Reload to ensure serialization works
     result = await db.execute(
         select(Dream)
-        .options(selectinload(Dream.tools), selectinload(Dream.tags), selectinload(Dream.media))
+        .options(selectinload(Dream.tools), selectinload(Dream.tags), selectinload(Dream.media), selectinload(Dream.creator))
         .filter(Dream.id == db_dream.id)
     )
-    return result.scalars().first()
+    dream = result.scalars().first()
+    
+    # Get counts
+    likes_count, comments_count = await get_dream_counts(db, dream_id)
+    
+    return dream_to_schema(dream, likes_count=likes_count, comments_count=comments_count)
 
 @router.post("/{dream_id}/fork", response_model=schemas.Dream)
 async def fork_dream(
@@ -222,10 +300,11 @@ async def fork_dream(
     # Reload with eager loading
     result = await db.execute(
         select(Dream)
-        .options(selectinload(Dream.tools), selectinload(Dream.tags), selectinload(Dream.media))
+        .options(selectinload(Dream.tools), selectinload(Dream.tags), selectinload(Dream.media), selectinload(Dream.creator))
         .filter(Dream.id == db_dream.id)
     )
-    return result.scalars().first()
+    dream = result.scalars().first()
+    return dream_to_schema(dream, likes_count=0, comments_count=0)
 
 @router.post("/{dream_id}/media", response_model=schemas.DreamMedia)
 async def add_dream_media(

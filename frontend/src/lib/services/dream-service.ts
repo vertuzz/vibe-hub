@@ -1,8 +1,27 @@
 import api from '../api';
 import type { Dream, DreamCreate } from '../types';
 
+export interface DreamQueryParams {
+    skip?: number;
+    limit?: number;
+    tool_id?: number;
+    tag_id?: number;
+    tool?: string;
+    tag?: string;
+    search?: string;
+    status?: 'Concept' | 'WIP' | 'Live';
+    sort_by?: 'trending' | 'newest' | 'top_rated' | 'likes';
+}
+
+export interface PaginatedResponse<T> {
+    items: T[];
+    total: number;
+    page: number;
+    pages: number;
+}
+
 export const dreamService = {
-    getDreams: async (params?: any): Promise<Dream[]> => {
+    getDreams: async (params?: DreamQueryParams): Promise<Dream[]> => {
         const response = await api.get('/dreams/', { params });
         return response.data;
     },
