@@ -5,6 +5,7 @@ import ViewDream from "./pages/ViewDream";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import UserPage from "./pages/UserPage";
+import AgentInstructions from "./pages/AgentInstructions";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
       <Route path="/signup" element={<Navigate to="/login?mode=signup" replace />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/users/:userId" element={<UserPage />} />
+      <Route path="/agent-instructions" element={<AgentInstructions />} />
     </Routes>
   );
 }

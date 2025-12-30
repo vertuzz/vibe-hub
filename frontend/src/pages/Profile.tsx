@@ -6,13 +6,16 @@ import DreamCard from '~/components/dreams/DreamCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
-import { Github, Twitter, Linkedin, Edit2, LogOut, MapPin, Link as LinkIcon, Calendar } from 'lucide-react';
+import { Github, Twitter, Linkedin, Edit2, LogOut, MapPin, Link as LinkIcon, Calendar, Key, Eye, EyeOff, Copy, Check } from 'lucide-react';
 import Header from '~/components/layout/Header';
 import { useNavigate } from 'react-router-dom';
+import { Input } from '~/components/ui/input';
 
 export default function Profile() {
     const { user, logout, isLoading } = useAuth();
     const [dreams, setDreams] = useState<Dream[]>([]);
+    const [showApiKey, setShowApiKey] = useState(false);
+    const [copied, setCopied] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -133,6 +136,62 @@ export default function Profile() {
                                     <Linkedin size={20} />
                                 </a>
                             </div>
+
+                            {/* API Key Section */}
+                            <div className="pt-6 border-t border-gray-100 mt-6">
+                                <div className="flex flex-col space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                                            <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
+                                                <Key size={16} />
+                                            </div>
+                                            <span>AI Agent API Key</span>
+                                        </div>
+                                        <button
+                                            onClick={() => navigate('/agent-instructions')}
+                                            className="text-xs text-primary hover:underline font-semibold flex items-center gap-1"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">help</span>
+                                            How to use?
+                                        </button>
+                                    </div>
+                                    <p className="text-sm text-gray-500">
+                                        Use this key to submit dreams programmatically using the <span className="font-semibold text-primary">Dreamware AI Agent</span>.
+                                        Keep it confidential to protect your account.
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1 group">
+                                            <Input
+                                                type={showApiKey ? "text" : "password"}
+                                                value={user.api_key || ''}
+                                                readOnly
+                                                className="pr-10 bg-gray-50/50 border-gray-200 text-sm font-mono h-11 rounded-xl focus:bg-white transition-all shadow-sm"
+                                            />
+                                            <button
+                                                onClick={() => setShowApiKey(!showApiKey)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors"
+                                                title={showApiKey ? "Hide API Key" : "Show API Key"}
+                                            >
+                                                {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            className="h-11 px-4 gap-2 rounded-xl border-gray-200 hover:border-primary hover:text-primary transition-all shadow-sm"
+                                            onClick={() => {
+                                                if (user.api_key) {
+                                                    navigator.clipboard.writeText(user.api_key);
+                                                    setCopied(true);
+                                                    setTimeout(() => setCopied(false), 2000);
+                                                }
+                                            }}
+                                        >
+                                            {copied ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
+                                            <span className="font-semibold">{copied ? 'Copied!' : 'Copy Key'}</span>
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -142,25 +201,25 @@ export default function Profile() {
                     <TabsList className="bg-transparent border-b border-gray-200 w-full justify-start h-auto p-0 gap-8">
                         <TabsTrigger
                             value="dreams"
-                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3 px-1 text-base font-semibold"
+                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3 px-1 text-base font-semibold transition-all"
                         >
                             Dreams <span className="ml-2 text-sm text-gray-400 font-normal">{dreams.length}</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="collections"
-                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3 px-1 text-base font-semibold"
+                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3 px-1 text-base font-semibold transition-all"
                         >
                             Collections <span className="ml-2 text-sm text-gray-400 font-normal">0</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="likes"
-                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3 px-1 text-base font-semibold"
+                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3 px-1 text-base font-semibold transition-all"
                         >
                             Likes <span className="ml-2 text-sm text-gray-400 font-normal">0</span>
                         </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="dreams" className="pt-2">
+                    <TabsContent value="dreams" className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         {dreams.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {dreams.map((dream) => (
@@ -176,14 +235,14 @@ export default function Profile() {
                         )}
                     </TabsContent>
 
-                    <TabsContent value="collections">
+                    <TabsContent value="collections" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <div className="bg-white rounded-3xl p-12 text-center border border-dashed border-gray-200">
                             <h3 className="text-xl font-bold text-gray-900 mb-2">No collections yet</h3>
                             <p className="text-gray-500">You haven't created any collections of dreams yet.</p>
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="likes">
+                    <TabsContent value="likes" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <div className="bg-white rounded-3xl p-12 text-center border border-dashed border-gray-200">
                             <h3 className="text-xl font-bold text-gray-900 mb-2">No likes yet</h3>
                             <p className="text-gray-500">Dreams you like will appear here.</p>

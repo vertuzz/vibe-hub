@@ -53,7 +53,13 @@ export default function Header({ onSearch }: HeaderProps) {
             >
               Explore
             </Link>
-
+            <Link
+              to="/agent-instructions"
+              className="text-sm font-semibold text-[#0d111b] dark:text-white hover:text-primary transition-colors flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[18px]">smart_toy</span>
+              AI Agent
+            </Link>
           </nav>
 
           {/* CTA Button */}

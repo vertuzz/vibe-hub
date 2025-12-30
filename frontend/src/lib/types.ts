@@ -8,6 +8,7 @@ export interface User {
     avatar?: string;
     bio?: string;
     reputation_score?: number;
+    api_key?: string;
 }
 
 export interface DreamCreator {
