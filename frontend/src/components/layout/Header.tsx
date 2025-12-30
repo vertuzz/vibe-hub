@@ -36,7 +36,7 @@ export default function Header({ onSearch }: HeaderProps) {
               <input
                 type="text"
                 className="w-full bg-transparent border-none focus:ring-0 text-sm font-medium text-[#0d111b] dark:text-white placeholder:text-gray-500 ml-2 h-full outline-none"
-                placeholder="Search dreams, agents, creators..."
+                placeholder="Search dreams, agents..."
                 onChange={(e) => onSearch?.(e.target.value)}
               />
             </div>
@@ -53,18 +53,7 @@ export default function Header({ onSearch }: HeaderProps) {
             >
               Explore
             </Link>
-            <Link
-              to="/creators"
-              className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-primary transition-colors"
-            >
-              Creators
-            </Link>
-            <Link
-              to="/community"
-              className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-primary transition-colors"
-            >
-              Community
-            </Link>
+
           </nav>
 
           {/* CTA Button */}
