@@ -1,10 +1,12 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useLayoutEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { dreamService, type DreamQueryParams } from '~/lib/services/dream-service';
 import type { Dream, Tag, Tool } from '~/lib/types';
 import DreamCard from '~/components/dreams/DreamCard';
 import DreamCardSkeleton from '~/components/dreams/DreamCardSkeleton';
 import FilterBar from '~/components/dreams/FilterBar';
 import Header from '~/components/layout/Header';
+import { useDreamCache } from '~/contexts/DreamCacheContext';
 
 type SortOption = 'trending' | 'newest' | 'top_rated' | 'likes';
 
@@ -20,20 +22,45 @@ const aspectRatios: Array<'square' | 'video' | 'portrait' | 'landscape'> = [
     'landscape',
 ];
 
+// Helper to create a unique key from search params for cache validation
+function createParamsKey(params: URLSearchParams): string {
+    const sortedParams = new URLSearchParams([...params.entries()].sort());
+    return sortedParams.toString();
+}
+
+// Helper to parse comma-separated IDs from URL
+function parseIds(value: string | null): number[] {
+    if (!value) return [];
+    return value.split(',').map(Number).filter(n => !isNaN(n));
+}
+
 export default function Home() {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { saveCache, loadCache } = useDreamCache();
+
+    // Initialize state from URL params
+    const getInitialTagIds = () => parseIds(searchParams.get('tag_id'));
+    const getInitialToolIds = () => parseIds(searchParams.get('tool_id'));
+    const getInitialSort = (): SortOption => (searchParams.get('sort_by') as SortOption) || 'trending';
+    const getInitialSearch = () => searchParams.get('search') || '';
+
     const [dreams, setDreams] = useState<Dream[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [tags, setTags] = useState<Tag[]>([]);
     const [tools, setTools] = useState<Tool[]>([]);
-    const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
-    const [selectedToolIds, setSelectedToolIds] = useState<number[]>([]);
-    const [sortBy, setSortBy] = useState<SortOption>('trending');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedTagIds, setSelectedTagIds] = useState<number[]>(getInitialTagIds);
+    const [selectedToolIds, setSelectedToolIds] = useState<number[]>(getInitialToolIds);
+    const [sortBy, setSortBy] = useState<SortOption>(getInitialSort);
+    const [searchQuery, setSearchQuery] = useState(getInitialSearch);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [showSortDropdown, setShowSortDropdown] = useState(false);
+    const [cacheRestored, setCacheRestored] = useState(false);
     const itemsPerPage = 20;
+
+    // Ref for scroll restoration
+    const pendingScrollRestore = useRef<number | null>(null);
 
     const observer = useRef<IntersectionObserver | null>(null);
     const lastDreamElementRef = useCallback(
@@ -49,6 +76,24 @@ export default function Home() {
         },
         [loading, loadingMore, hasMore]
     );
+
+    // Sync state to URL params
+    useEffect(() => {
+        const newParams = new URLSearchParams();
+        if (selectedTagIds.length > 0) {
+            newParams.set('tag_id', selectedTagIds.join(','));
+        }
+        if (selectedToolIds.length > 0) {
+            newParams.set('tool_id', selectedToolIds.join(','));
+        }
+        if (sortBy !== 'trending') {
+            newParams.set('sort_by', sortBy);
+        }
+        if (searchQuery) {
+            newParams.set('search', searchQuery);
+        }
+        setSearchParams(newParams, { replace: true });
+    }, [selectedTagIds, selectedToolIds, sortBy, searchQuery, setSearchParams]);
 
     const fetchDreams = useCallback(async (isInitial: boolean = false) => {
         if (isInitial) {
@@ -94,7 +139,7 @@ export default function Home() {
         }
     }, [page, sortBy, selectedTagIds, selectedToolIds, searchQuery]);
 
-    // Initial fetch and filter/sort changes
+    // Load filter data (tags, tools) on mount
     useEffect(() => {
         const loadInitialData = async () => {
             try {
@@ -111,21 +156,54 @@ export default function Home() {
         loadInitialData();
     }, []);
 
+    // Check cache on mount and restore if valid
     useEffect(() => {
+        const paramsKey = createParamsKey(searchParams);
+        const cached = loadCache(paramsKey);
+
+        if (cached) {
+            setDreams(cached.dreams);
+            setPage(cached.page);
+            setHasMore(cached.hasMore);
+            pendingScrollRestore.current = cached.scrollPosition;
+            setLoading(false);
+            setCacheRestored(true);
+        } else {
+            fetchDreams(true);
+        }
+        // Only run on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Restore scroll position after dreams render from cache
+    useLayoutEffect(() => {
+        if (cacheRestored && pendingScrollRestore.current !== null && dreams.length > 0) {
+            window.scrollTo(0, pendingScrollRestore.current);
+            pendingScrollRestore.current = null;
+            setCacheRestored(false);
+        }
+    }, [cacheRestored, dreams]);
+
+    // Filter/sort changes (only if not initial cache restore)
+    useEffect(() => {
+        if (cacheRestored) return; // Skip if just restored from cache
         setPage(1);
         setHasMore(true);
         fetchDreams(true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sortBy, selectedTagIds, selectedToolIds]);
 
-    // Fetch more when page changes
+    // Fetch more when page changes (infinite scroll)
     useEffect(() => {
         if (page > 1) {
             fetchDreams(false);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page]);
 
     // Debounced search handler
     useEffect(() => {
+        if (cacheRestored) return;
         const timer = setTimeout(() => {
             if (searchQuery !== '') {
                 setPage(1);
@@ -134,16 +212,39 @@ export default function Home() {
             }
         }, 300);
         return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchQuery]);
 
+    // Save cache on unmount
+    useEffect(() => {
+        return () => {
+            const paramsKey = createParamsKey(new URLSearchParams(window.location.search));
+            saveCache({
+                dreams,
+                page,
+                hasMore,
+                scrollPosition: window.scrollY,
+                paramsKey,
+            });
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dreams, page, hasMore, saveCache]);
+
     const handleFilterChange = (selected: { tagIds: number[]; toolIds: number[] }) => {
+        setCacheRestored(false); // Reset flag so filters work
         setSelectedTagIds(selected.tagIds);
         setSelectedToolIds(selected.toolIds);
     };
 
     const handleSortChange = (sort: SortOption) => {
+        setCacheRestored(false);
         setSortBy(sort);
         setShowSortDropdown(false);
+    };
+
+    const handleSearch = (query: string) => {
+        setCacheRestored(false);
+        setSearchQuery(query);
     };
 
     const sortLabels: Record<SortOption, string> = {
@@ -153,12 +254,10 @@ export default function Home() {
         likes: 'Most Liked',
     };
 
-    // Removed hardcoded filter buttons logic
-
     return (
         <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
             {/* Header */}
-            <Header onSearch={setSearchQuery} />
+            <Header onSearch={handleSearch} />
 
             {/* Main Content */}
             <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 md:px-10 py-8">
@@ -194,7 +293,10 @@ export default function Home() {
                                 return (
                                     <button
                                         key={`tag-${id}`}
-                                        onClick={() => setSelectedTagIds(prev => prev.filter(tid => tid !== id))}
+                                        onClick={() => {
+                                            setCacheRestored(false);
+                                            setSelectedTagIds(prev => prev.filter(tid => tid !== id));
+                                        }}
                                         className="inline-flex h-7 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 text-[12px] font-medium text-primary hover:bg-primary/10 transition-colors"
                                     >
                                         {tag.name}
@@ -208,7 +310,10 @@ export default function Home() {
                                 return (
                                     <button
                                         key={`tool-${id}`}
-                                        onClick={() => setSelectedToolIds(prev => prev.filter(tid => tid !== id))}
+                                        onClick={() => {
+                                            setCacheRestored(false);
+                                            setSelectedToolIds(prev => prev.filter(tid => tid !== id));
+                                        }}
                                         className="inline-flex h-7 items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50 px-3 text-[12px] font-medium text-purple-600 hover:bg-purple-100 transition-colors"
                                     >
                                         {tool.name}
