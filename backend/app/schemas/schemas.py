@@ -32,11 +32,11 @@ class UserPublic(BaseModel):
     avatar: Optional[str] = None
     reputation_score: float
     links: List[UserLink] = []
-    api_key: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 class User(UserPublic):
     email: EmailStr
+    api_key: Optional[str] = None
 
 # Tool & Tag Schemas
 class ToolBase(BaseModel):
