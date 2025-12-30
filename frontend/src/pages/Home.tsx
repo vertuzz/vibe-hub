@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { dreamService, type DreamQueryParams } from '~/lib/services/dream-service';
 import type { Dream } from '~/lib/types';
 import DreamCard from '~/components/dreams/DreamCard';
@@ -23,18 +23,40 @@ const aspectRatios: Array<'square' | 'video' | 'portrait' | 'landscape'> = [
 export default function Home() {
     const [dreams, setDreams] = useState<Dream[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [activeFilter, setActiveFilter] = useState<FilterCategory>('all');
     const [sortBy, setSortBy] = useState<SortOption>('trending');
     const [searchQuery, setSearchQuery] = useState('');
     const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
     const [showSortDropdown, setShowSortDropdown] = useState(false);
     const itemsPerPage = 20;
 
-    const fetchDreams = useCallback(async () => {
-        setLoading(true);
+    const observer = useRef<IntersectionObserver | null>(null);
+    const lastDreamElementRef = useCallback(
+        (node: HTMLDivElement | null) => {
+            if (loading || loadingMore) return;
+            if (observer.current) observer.current.disconnect();
+            observer.current = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting && hasMore) {
+                    setPage((prevPage) => prevPage + 1);
+                }
+            });
+            if (node) observer.current.observe(node);
+        },
+        [loading, loadingMore, hasMore]
+    );
+
+    const fetchDreams = useCallback(async (isInitial: boolean = false) => {
+        if (isInitial) {
+            setLoading(true);
+        } else {
+            setLoadingMore(true);
+        }
+
         try {
             const params: DreamQueryParams = {
-                skip: (page - 1) * itemsPerPage,
+                skip: ((isInitial ? 1 : page) - 1) * itemsPerPage,
                 limit: itemsPerPage,
                 sort_by: sortBy,
             };
@@ -57,24 +79,43 @@ export default function Home() {
             }
 
             const data = await dreamService.getDreams(params);
-            setDreams(data);
+
+            if (isInitial) {
+                setDreams(data);
+            } else {
+                setDreams((prev) => [...prev, ...data]);
+            }
+
+            setHasMore(data.length === itemsPerPage);
         } catch (err) {
             console.error('Failed to fetch dreams:', err);
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
     }, [page, sortBy, activeFilter, searchQuery]);
 
+    // Initial fetch and filter/sort changes
     useEffect(() => {
-        fetchDreams();
-    }, [fetchDreams]);
+        setPage(1);
+        setHasMore(true);
+        fetchDreams(true);
+    }, [sortBy, activeFilter]);
+
+    // Fetch more when page changes
+    useEffect(() => {
+        if (page > 1) {
+            fetchDreams(false);
+        }
+    }, [page]);
 
     // Debounced search handler
     useEffect(() => {
         const timer = setTimeout(() => {
             if (searchQuery !== '') {
                 setPage(1);
-                fetchDreams();
+                setHasMore(true);
+                fetchDreams(true);
             }
         }, 300);
         return () => clearTimeout(timer);
@@ -82,12 +123,10 @@ export default function Home() {
 
     const handleFilterChange = (filter: FilterCategory) => {
         setActiveFilter(filter);
-        setPage(1);
     };
 
     const handleSortChange = (sort: SortOption) => {
         setSortBy(sort);
-        setPage(1);
         setShowSortDropdown(false);
     };
 
@@ -135,11 +174,10 @@ export default function Home() {
                                 <button
                                     key={btn.key}
                                     onClick={() => handleFilterChange(btn.key)}
-                                    className={`flex h-9 items-center justify-center gap-2 rounded-full px-5 whitespace-nowrap transition-all ${
-                                        activeFilter === btn.key
+                                    className={`flex h-9 items-center justify-center gap-2 rounded-full px-5 whitespace-nowrap transition-all ${activeFilter === btn.key
                                             ? 'bg-primary text-white shadow-sm hover:bg-primary-dark'
                                             : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 shadow-sm hover:border-primary hover:text-primary'
-                                    }`}
+                                        }`}
                                 >
                                     {btn.icon && (
                                         <span className="material-symbols-outlined text-[18px]">{btn.icon}</span>
@@ -167,11 +205,10 @@ export default function Home() {
                                     <button
                                         key={option}
                                         onClick={() => handleSortChange(option)}
-                                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                                            sortBy === option
+                                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${sortBy === option
                                                 ? 'text-primary font-semibold'
                                                 : 'text-gray-700 dark:text-gray-300'
-                                        }`}
+                                            }`}
                                     >
                                         {sortLabels[option]}
                                     </button>
@@ -180,15 +217,6 @@ export default function Home() {
                         )}
                     </div>
                 </div>
-
-                {/* Loading State */}
-                {loading && (
-                    <div className="masonry-grid pb-12">
-                        {Array.from({ length: 8 }).map((_, index) => (
-                            <DreamCardSkeleton key={index} />
-                        ))}
-                    </div>
-                )}
 
                 {/* Empty State */}
                 {!loading && dreams.length === 0 && (
@@ -208,60 +236,44 @@ export default function Home() {
                 )}
 
                 {/* Masonry Grid */}
-                {!loading && dreams.length > 0 && (
+                {dreams.length > 0 && (
                     <div className="masonry-grid pb-12">
-                        {dreams.map((dream, index) => (
-                            <DreamCard
-                                key={dream.id}
-                                dream={dream}
-                                aspectRatio={aspectRatios[index % aspectRatios.length]}
-                            />
+                        {dreams.map((dream, index) => {
+                            if (dreams.length === index + 1) {
+                                return (
+                                    <div ref={lastDreamElementRef} key={dream.id}>
+                                        <DreamCard
+                                            dream={dream}
+                                            aspectRatio={aspectRatios[index % aspectRatios.length]}
+                                        />
+                                    </div>
+                                );
+                            } else {
+                                return (
+                                    <DreamCard
+                                        key={dream.id}
+                                        dream={dream}
+                                        aspectRatio={aspectRatios[index % aspectRatios.length]}
+                                    />
+                                );
+                            }
+                        })}
+                    </div>
+                )}
+
+                {/* Loading State */}
+                {(loading || loadingMore) && (
+                    <div className="masonry-grid pb-12">
+                        {Array.from({ length: loading ? 8 : 4 }).map((_, index) => (
+                            <DreamCardSkeleton key={index} />
                         ))}
                     </div>
                 )}
 
-                {/* Pagination */}
-                {!loading && dreams.length > 0 && (
-                    <div className="flex items-center justify-center pt-8 pb-12">
-                        <nav className="flex items-center gap-2">
-                            <button
-                                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                disabled={page === 1}
-                                className="flex items-center justify-center size-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <span className="material-symbols-outlined text-[20px]">chevron_left</span>
-                            </button>
-
-                            {[1, 2, 3].map((p) => (
-                                <button
-                                    key={p}
-                                    onClick={() => setPage(p)}
-                                    className={`flex items-center justify-center size-10 rounded-full text-sm font-medium transition-colors ${
-                                        page === p
-                                            ? 'bg-primary text-white shadow-md shadow-primary/30 font-bold'
-                                            : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
-                                    }`}
-                                >
-                                    {p}
-                                </button>
-                            ))}
-
-                            <span className="flex items-center justify-center size-10 text-gray-400 pb-2">...</span>
-
-                            <button
-                                onClick={() => setPage(12)}
-                                className="flex items-center justify-center size-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm font-medium transition-colors"
-                            >
-                                12
-                            </button>
-
-                            <button
-                                onClick={() => setPage((p) => p + 1)}
-                                className="flex items-center justify-center size-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors"
-                            >
-                                <span className="material-symbols-outlined text-[20px]">chevron_right</span>
-                            </button>
-                        </nav>
+                {/* End of List Message */}
+                {!loading && !loadingMore && !hasMore && dreams.length > 0 && (
+                    <div className="flex items-center justify-center py-10">
+                        <p className="text-gray-400 text-sm font-medium">You've reached the end of the universe ✨</p>
                     </div>
                 )}
             </main>
