@@ -128,14 +128,17 @@ class CommentBase(BaseModel):
     content: str
 
 class CommentCreate(CommentBase):
-    pass
+    parent_id: Optional[int] = None
 
 class Comment(CommentBase):
     id: int
     dream_id: int
     user_id: int
     created_at: datetime
-    likes_count: int
+    created_at: datetime
+    score: int
+    parent_id: Optional[int] = None
+    user_vote: int = 0  # 0: none, 1: up, -1: down
     model_config = ConfigDict(from_attributes=True)
 
 class CommentUser(BaseModel):

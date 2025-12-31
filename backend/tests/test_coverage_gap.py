@@ -94,22 +94,22 @@ async def test_likes_errors_and_unlikes(client: AsyncClient, auth_headers: dict)
     resp = await client.delete(f"/dreams/{dream_id}/like", headers=auth_headers)
     assert resp.status_code == 404
 
-    # 5. Like comment
+    # 5. Vote on comment
     comm_resp = await client.post(f"/dreams/{dream_id}/comments", json={"content": "Liking this"}, headers=auth_headers)
     comm = comm_resp.json()
     comm_id = comm["id"]
-    resp = await client.post(f"/comments/{comm_id}/like", headers=auth_headers)
+    resp = await client.post(f"/comments/{comm_id}/vote", params={"value": 1}, headers=auth_headers)
     assert resp.status_code == 200
 
-    # 6. Duplicate comment like
-    resp = await client.post(f"/comments/{comm_id}/like", headers=auth_headers)
-    assert resp.status_code == 400
+    # 6. Change vote (allowed, not 400)
+    resp = await client.post(f"/comments/{comm_id}/vote", params={"value": -1}, headers=auth_headers)
+    assert resp.status_code == 200
 
     # 7. Dream not found for like
     assert (await client.post("/dreams/9999/like", headers=auth_headers)).status_code == 404
 
-    # 8. Comment not found for like
-    assert (await client.post("/comments/9999/like", headers=auth_headers)).status_code == 404
+    # 8. Comment not found for vote
+    assert (await client.post("/comments/9999/vote", params={"value": 1}, headers=auth_headers)).status_code == 404
 
 @pytest.mark.asyncio
 async def test_notifications_read(client: AsyncClient, auth_headers: dict):

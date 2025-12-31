@@ -66,7 +66,7 @@ class User(Base):
     comments: Mapped[List["Comment"]] = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
     reviews: Mapped[List["Review"]] = relationship("Review", back_populates="user", cascade="all, delete-orphan")
     likes: Mapped[List["Like"]] = relationship("Like", back_populates="user", cascade="all, delete-orphan")
-    comment_likes: Mapped[List["CommentLike"]] = relationship("CommentLike", back_populates="user", cascade="all, delete-orphan")
+    comment_votes: Mapped[List["CommentVote"]] = relationship("CommentVote", back_populates="user", cascade="all, delete-orphan")
     collections: Mapped[List["Collection"]] = relationship("Collection", back_populates="owner", cascade="all, delete-orphan")
     implementations: Mapped[List["Implementation"]] = relationship("Implementation", back_populates="user", cascade="all, delete-orphan")
     links: Mapped[List["UserLink"]] = relationship("UserLink", back_populates="user", cascade="all, delete-orphan")
@@ -182,11 +182,15 @@ class Comment(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
     
     # Counter cache for performance
-    likes_count: Mapped[int] = mapped_column(default=0)
+    score: Mapped[int] = mapped_column(default=0)
 
     dream: Mapped["Dream"] = relationship("Dream", back_populates="comments")
     user: Mapped["User"] = relationship("User", back_populates="comments")
-    likes: Mapped[List["CommentLike"]] = relationship("CommentLike", back_populates="comment", cascade="all, delete-orphan")
+    votes: Mapped[List["CommentVote"]] = relationship("CommentVote", back_populates="comment", cascade="all, delete-orphan")
+    
+    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("comments.id"), nullable=True, index=True)
+    parent: Mapped[Optional["Comment"]] = relationship("Comment", remote_side=[id], back_populates="replies")
+    replies: Mapped[List["Comment"]] = relationship("Comment", back_populates="parent", cascade="all, delete-orphan")
 
 class Review(Base):
     __tablename__ = "reviews"
@@ -214,18 +218,19 @@ class Like(Base):
     # Ensure a user can only like a dream once
     __table_args__ = (UniqueConstraint("dream_id", "user_id", name="uq_dream_like"),)
 
-class CommentLike(Base):
-    __tablename__ = "comment_likes"
+class CommentVote(Base):
+    __tablename__ = "comment_votes"
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     comment_id: Mapped[int] = mapped_column(ForeignKey("comments.id"), index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    value: Mapped[int] = mapped_column(default=1) # 1 for upvote, -1 for downvote
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
-    comment: Mapped["Comment"] = relationship("Comment", back_populates="likes")
-    user: Mapped["User"] = relationship("User", back_populates="comment_likes")
+    comment: Mapped["Comment"] = relationship("Comment", back_populates="votes")
+    user: Mapped["User"] = relationship("User", back_populates="comment_votes")
 
-    # Ensure a user can only like a comment once
-    __table_args__ = (UniqueConstraint("comment_id", "user_id", name="uq_comment_like"),)
+    # Ensure a user can only vote on a comment once
+    __table_args__ = (UniqueConstraint("comment_id", "user_id", name="uq_comment_vote"),)
 
 class Collection(Base):
     __tablename__ = "collections"

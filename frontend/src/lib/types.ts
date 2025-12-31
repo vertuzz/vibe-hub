@@ -76,7 +76,9 @@ export interface Comment {
     user_id: number;
     content: string;
     created_at: string;
-    likes_count: number;
+    score: number;
+    user_vote?: number; // 1, -1, 0
+    parent_id?: number | null;
     user?: {
         id: number;
         username: string;
@@ -86,4 +88,5 @@ export interface Comment {
 
 export interface CommentCreate {
     content: string;
+    parent_id?: number;
 }

@@ -5,6 +5,7 @@ import { authService } from '../lib/services/auth-service';
 interface AuthContextType {
     user: User | null;
     token: string | null;
+    isAuthenticated: boolean;
     isLoading: boolean;
     login: (credentials: any) => Promise<void>;
     logout: () => void;
@@ -57,8 +58,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(null);
     };
 
+    const isAuthenticated = !!token;
+
     return (
-        <AuthContext.Provider value={{ user, token, isLoading, login, logout, checkAuth }}>
+        <AuthContext.Provider value={{ user, token, isAuthenticated, isLoading, login, logout, checkAuth }}>
             {children}
         </AuthContext.Provider>
     );

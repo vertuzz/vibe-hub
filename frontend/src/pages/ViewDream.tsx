@@ -132,11 +132,7 @@ export default function ViewDream() {
         }
     };
 
-    const handleSubmitComment = async (content: string) => {
-        if (!dream) return;
-        const comment = await dreamService.createComment(dream.id, { content });
-        setComments((prev) => [comment, ...prev]);
-    };
+
 
     const handleShare = async () => {
         const url = window.location.href;
@@ -250,8 +246,9 @@ export default function ViewDream() {
 
                         {/* Comments */}
                         <DreamComments
+                            dreamId={dream.id}
                             comments={comments}
-                            onSubmitComment={handleSubmitComment}
+                            onRefresh={fetchDream}
                         />
                     </div>
 
