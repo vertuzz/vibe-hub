@@ -58,18 +58,12 @@ function formatCount(count: number | undefined): string {
   return count.toString();
 }
 
-// Default placeholder images for dreams without media
-const placeholderImages = [
-  'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1535378917042-10a22c95931a?w=400&h=300&fit=crop',
-];
+// Default placeholder image for dreams without media
+const placeholderImage = '/placeholder-dream.png';
 
 export default function DreamCard({ dream, aspectRatio = 'landscape' }: DreamCardProps) {
   // Get the first media image or use a placeholder
-  const imageUrl = dream.media?.[0]?.media_url ||
-    placeholderImages[dream.id % placeholderImages.length];
+  const imageUrl = dream.media?.[0]?.media_url || placeholderImage;
 
   const creatorName = dream.creator?.username || `user_${dream.creator_id}`;
   const creatorAvatar = dream.creator?.avatar;

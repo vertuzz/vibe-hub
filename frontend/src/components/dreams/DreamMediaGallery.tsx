@@ -64,9 +64,11 @@ export default function DreamMediaGallery({ media, youtubeUrl, title }: DreamMed
                         </button>
                     </>
                 ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-purple-600/30 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-8xl text-white/50">auto_awesome</span>
-                    </div>
+                    <img
+                        src="/placeholder-dream.png"
+                        alt={title}
+                        className="w-full h-full object-cover"
+                    />
                 )}
             </div>
 
