@@ -24,7 +24,7 @@ export default function DreamMediaGallery({ media, youtubeUrl, title }: DreamMed
     return (
         <section className="flex flex-col gap-4">
             {/* Main Preview (Hero) */}
-            <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-900 shadow-sm group">
+            <div className="relative w-full aspect-[3/2] rounded-2xl overflow-hidden bg-gray-900 shadow-sm group">
                 {hasYouTube && selectedMediaIndex === -1 ? (
                     <iframe
                         className="absolute inset-0 w-full h-full"
@@ -35,11 +35,19 @@ export default function DreamMediaGallery({ media, youtubeUrl, title }: DreamMed
                     />
                 ) : heroMedia ? (
                     <>
+                        {/* Blurred background for premium feel and to fill gaps */}
                         <div
-                            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                            className="absolute inset-0 bg-cover bg-center blur-2xl opacity-50 scale-110 pointer-events-none"
                             style={{ backgroundImage: `url('${heroMedia}')` }}
                         />
-                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                        <div className="absolute inset-0 bg-black/10" />
+
+                        {/* Main image - contain to avoid cropping */}
+                        <img
+                            src={heroMedia}
+                            alt={title}
+                            className="relative z-10 w-full h-full object-contain transition-transform duration-700 group-hover:scale-[1.02]"
+                        />
                     </>
                 ) : hasYouTube ? (
                     <>
@@ -50,7 +58,7 @@ export default function DreamMediaGallery({ media, youtubeUrl, title }: DreamMed
                         <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
                         <button
                             onClick={() => setSelectedMediaIndex(-1)}
-                            className="absolute inset-0 m-auto size-20 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 hover:scale-110 transition-all duration-300"
+                            className="absolute inset-0 m-auto size-20 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 hover:scale-110 transition-all duration-300 z-20"
                         >
                             <span className="material-symbols-outlined text-5xl filled">play_arrow</span>
                         </button>
@@ -68,7 +76,7 @@ export default function DreamMediaGallery({ media, youtubeUrl, title }: DreamMed
                     {hasYouTube && (
                         <button
                             onClick={() => setSelectedMediaIndex(-1)}
-                            className={`relative shrink-0 w-32 aspect-video rounded-lg overflow-hidden snap-start ${selectedMediaIndex === -1
+                            className={`relative shrink-0 w-32 aspect-[3/2] rounded-lg overflow-hidden snap-start ${selectedMediaIndex === -1
                                 ? 'ring-2 ring-primary ring-offset-2 ring-offset-[var(--background)]'
                                 : 'border border-[var(--border)] opacity-70 hover:opacity-100'
                                 } transition-opacity`}
@@ -87,7 +95,7 @@ export default function DreamMediaGallery({ media, youtubeUrl, title }: DreamMed
                         <button
                             key={item.id}
                             onClick={() => setSelectedMediaIndex(index)}
-                            className={`relative shrink-0 w-32 aspect-video rounded-lg overflow-hidden snap-start ${selectedMediaIndex === index
+                            className={`relative shrink-0 w-32 aspect-[3/2] rounded-lg overflow-hidden snap-start ${selectedMediaIndex === index
                                 ? 'ring-2 ring-primary ring-offset-2 ring-offset-[var(--background)]'
                                 : 'border border-[var(--border)] opacity-70 hover:opacity-100'
                                 } transition-opacity`}
