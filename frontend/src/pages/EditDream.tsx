@@ -276,6 +276,7 @@ export default function EditDream() {
                             previews={previews} // Shows new uploads only for now
                             selectedTools={selectedTools}
                             selectedTags={selectedTags}
+                            coverImage={existingMedia.length > 0 ? existingMedia[0].media_url : undefined}
                         />
                         {existingMedia.length > 0 && (
                             <div className="mt-8 p-6 bg-white dark:bg-[var(--card)] rounded-2xl border border-[var(--border)]">

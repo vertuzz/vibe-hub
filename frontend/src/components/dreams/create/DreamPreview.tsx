@@ -6,6 +6,7 @@ interface DreamPreviewProps {
     previews: string[];
     selectedTools: Tool[];
     selectedTags: Tag[];
+    coverImage?: string;
 }
 
 export default function DreamPreview({
@@ -13,8 +14,15 @@ export default function DreamPreview({
     tagline,
     previews,
     selectedTools,
-    selectedTags
+    selectedTags,
+    coverImage
 }: DreamPreviewProps) {
+    // Determine which image to show
+    // Priority: 1. New upload (previews), 2. Existing cover image, 3. None
+    const displayImage = previews.length > 0
+        ? previews[previews.length - 1]
+        : coverImage;
+
     return (
         <div className="sticky top-28 flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -25,8 +33,8 @@ export default function DreamPreview({
             {/* Preview Card */}
             <div className="bg-white dark:bg-[#1E2330] rounded-xl shadow-xl overflow-hidden border border-slate-100 dark:border-slate-700 group cursor-default transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1">
                 <div className="aspect-[4/3] w-full overflow-hidden bg-slate-100 dark:bg-slate-800 relative">
-                    {previews.length > 0 ? (
-                        <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={previews[previews.length - 1]} alt="Preview" />
+                    {displayImage ? (
+                        <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={displayImage} alt="Preview" />
                     ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50 dark:bg-slate-900">
                             <span className="material-symbols-outlined text-4xl mb-2">image</span>
