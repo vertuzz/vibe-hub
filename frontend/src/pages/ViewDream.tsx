@@ -226,9 +226,10 @@ export default function ViewDream() {
                                     <span className="material-symbols-outlined text-primary">auto_stories</span>
                                     The Story
                                 </h3>
-                                <div className="prose prose-lg dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed">
-                                    <p className="whitespace-pre-wrap">{dream.prd_text}</p>
-                                </div>
+                                <div
+                                    className="tiptap-editor prose prose-lg dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed"
+                                    dangerouslySetInnerHTML={{ __html: dream.prd_text }}
+                                />
                             </section>
                         )}
 

@@ -1,5 +1,6 @@
 import type { Tool, Tag } from '~/lib/types';
 import MultiSelect from '~/components/common/MultiSelect';
+import RichTextEditor from '~/components/common/RichTextEditor';
 
 interface DetailsSectionProps {
     prdText: string;
@@ -49,21 +50,11 @@ export default function DetailsSection({
             <div className="flex flex-col gap-6">
                 <div className="flex flex-col gap-2">
                     <label className="text-slate-700 dark:text-slate-300 text-sm font-semibold">The Story / PRD</label>
-                    <div className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 overflow-hidden focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
-                        <div className="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E2330]">
-                            <button type="button" className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"><span className="material-symbols-outlined text-[20px]">format_bold</span></button>
-                            <button type="button" className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"><span className="material-symbols-outlined text-[20px]">format_italic</span></button>
-                            <button type="button" className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"><span className="material-symbols-outlined text-[20px]">link</span></button>
-                            <div className="w-px h-4 bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                            <button type="button" className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"><span className="material-symbols-outlined text-[20px]">format_list_bulleted</span></button>
-                        </div>
-                        <textarea
-                            className="w-full bg-transparent border-none p-4 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-0 min-h-[150px] resize-y"
-                            placeholder="Tell us how you built this, what models you used, and what inspired you..."
-                            value={prdText}
-                            onChange={(e) => setPrdText(e.target.value)}
-                        />
-                    </div>
+                    <RichTextEditor
+                        content={prdText}
+                        onChange={setPrdText}
+                        placeholder="Tell us how you built this, what models you used, and what inspired you..."
+                    />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex flex-col gap-3">
