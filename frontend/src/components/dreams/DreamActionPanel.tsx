@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Dream } from '~/lib/types';
+import { useAuth } from '~/contexts/AuthContext';
 
 interface DreamActionPanelProps {
     dream: Dream;
@@ -7,6 +8,7 @@ interface DreamActionPanelProps {
     isLiked: boolean;
     onLike: () => void;
     onShare: () => void;
+    onDelete: () => void;
 }
 
 const statusConfig = {
@@ -38,8 +40,11 @@ export default function DreamActionPanel({
     likesCount,
     isLiked,
     onLike,
-    onShare
+    onShare,
+    onDelete
 }: DreamActionPanelProps) {
+    const { user } = useAuth();
+    const isOwner = user?.id === dream.creator_id;
     const status = statusConfig[dream.status] || statusConfig.Concept;
 
     return (
@@ -57,6 +62,25 @@ export default function DreamActionPanel({
                         </span>
                         <span className={`text-xs font-bold ${status.text} uppercase tracking-wide`}>{status.label}</span>
                     </div>
+
+                    {isOwner && (
+                        <div className="flex items-center gap-2">
+                            <Link
+                                to={`/dreams/${dream.slug}/edit`}
+                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors"
+                                title="Edit Dream"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">edit</span>
+                            </Link>
+                            <button
+                                onClick={onDelete}
+                                className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 transition-colors"
+                                title="Delete Dream"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">delete</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* CTA */}
@@ -131,7 +155,7 @@ export default function DreamActionPanel({
                     {dream.tags.map((tag) => (
                         <Link
                             key={tag.id}
-                            to={`/?tag=${tag.name}`}
+                            to={`/?tag_id=${tag.id}`}
                             className="px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-primary/10 hover:text-primary transition-colors"
                         >
                             #{tag.name}

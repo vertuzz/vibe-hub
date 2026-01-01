@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { dreamService } from '~/lib/services/dream-service';
 import type { Dream, Comment } from '~/lib/types';
 import { Header } from '~/components/layout';
@@ -11,6 +11,7 @@ import {
     DreamTools,
 } from '~/components/dreams';
 import { Breadcrumbs } from '~/components/common/Breadcrumbs';
+import DeleteConfirmModal from '~/components/common/DeleteConfirmModal';
 
 // Helper to format date
 function formatDate(dateString: string): string {
@@ -90,13 +91,19 @@ function DreamNotFound() {
 
 export default function ViewDream() {
     const { slug } = useParams<{ slug: string }>();
+    const navigate = useNavigate();
     const [dream, setDream] = useState<Dream | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
     const [loading, setLoading] = useState(true);
     const [isLiked, setIsLiked] = useState(false);
     const [likesCount, setLikesCount] = useState(0);
 
+    // Deletion state
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const fetchDream = useCallback(async () => {
+        // ... (fetchDream logic remains same)
         if (!slug) return;
         try {
             const dreamData = await dreamService.getDream(slug);
@@ -104,7 +111,6 @@ export default function ViewDream() {
             setLikesCount(dreamData.likes_count || 0);
             setIsLiked(!!dreamData.is_liked);
 
-            // Fetch comments using the retrieved ID
             const commentsData = await dreamService.getComments(dreamData.id);
             setComments(commentsData);
         } catch (err) {
@@ -119,6 +125,7 @@ export default function ViewDream() {
     }, [fetchDream]);
 
     const handleLike = async () => {
+        // ... (handleLike logic remains same)
         if (!dream) return;
         try {
             if (isLiked) {
@@ -134,9 +141,8 @@ export default function ViewDream() {
         }
     };
 
-
-
     const handleShare = async () => {
+        // ... (handleShare logic remains same)
         const url = window.location.href;
         if (navigator.share) {
             try {
@@ -157,6 +163,21 @@ export default function ViewDream() {
         }
     };
 
+    const handleDelete = async () => {
+        if (!dream) return;
+        setIsDeleting(true);
+        try {
+            await dreamService.deleteDream(dream.id);
+            setIsDeleteModalOpen(false);
+            navigate('/', { replace: true });
+        } catch (err) {
+            console.error('Failed to delete dream:', err);
+            alert('Failed to delete dream. Please try again.');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     if (loading) return <DreamSkeleton />;
     if (!dream) return <DreamNotFound />;
 
@@ -165,7 +186,6 @@ export default function ViewDream() {
             <Header />
 
             <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 md:px-8 lg:px-12 py-8">
-                {/* Breadcrumbs */}
                 {/* Breadcrumbs */}
                 <Breadcrumbs
                     items={[
@@ -179,16 +199,13 @@ export default function ViewDream() {
                 />
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                    {/* LEFT COLUMN: Content (8 cols) */}
                     <div className="lg:col-span-8 flex flex-col gap-10">
-                        {/* Media Gallery */}
                         <DreamMediaGallery
                             media={dream.media}
                             youtubeUrl={dream.youtube_url}
                             title={dream.title}
                         />
 
-                        {/* Page Header & Meta */}
                         <section className="border-b border-[var(--border)] pb-8">
                             <h1 className="text-4xl md:text-5xl font-black text-[var(--foreground)] tracking-tight mb-3">
                                 {dream.title}
@@ -219,7 +236,6 @@ export default function ViewDream() {
                             </div>
                         </section>
 
-                        {/* The Story / PRD */}
                         {dream.prd_text && (
                             <section>
                                 <h3 className="text-2xl font-bold text-[var(--foreground)] mb-4 flex items-center gap-2">
@@ -233,17 +249,14 @@ export default function ViewDream() {
                             </section>
                         )}
 
-                        {/* The Prompt */}
                         {dream.prompt_text && (
                             <DreamPromptSection promptText={dream.prompt_text} />
                         )}
 
-                        {/* Tech Stack */}
                         {dream.tools && dream.tools.length > 0 && (
                             <DreamTools tools={dream.tools} />
                         )}
 
-                        {/* Comments */}
                         <DreamComments
                             dreamId={dream.id}
                             comments={comments}
@@ -251,7 +264,6 @@ export default function ViewDream() {
                         />
                     </div>
 
-                    {/* RIGHT COLUMN: Sticky Action Panel (4 cols) */}
                     <div className="lg:col-span-4 relative">
                         <DreamActionPanel
                             dream={dream}
@@ -259,10 +271,18 @@ export default function ViewDream() {
                             isLiked={isLiked}
                             onLike={handleLike}
                             onShare={handleShare}
+                            onDelete={() => setIsDeleteModalOpen(true)}
                         />
                     </div>
                 </div>
             </main>
+
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                isDeleting={isDeleting}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleDelete}
+            />
         </div>
     );
 }

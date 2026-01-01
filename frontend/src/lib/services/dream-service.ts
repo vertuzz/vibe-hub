@@ -48,6 +48,10 @@ export const dreamService = {
         return response.data;
     },
 
+    deleteDream: async (id: number): Promise<void> => {
+        await api.delete(`/dreams/${id}`);
+    },
+
     // Like endpoints
     likeDream: async (id: number): Promise<void> => {
         await api.post(`/dreams/${id}/like`);

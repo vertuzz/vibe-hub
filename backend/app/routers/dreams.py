@@ -316,6 +316,25 @@ async def update_dream(
         raise HTTPException(status_code=403, detail="Not authorized")
     
     update_data = dream_in.model_dump(exclude_unset=True)
+    
+    # Handle tools update
+    if "tool_ids" in update_data:
+        tool_ids = update_data.pop("tool_ids")
+        if tool_ids is not None:
+            result = await db.execute(select(Tool).filter(Tool.id.in_(tool_ids)))
+            db_dream.tools = result.scalars().all()
+        else:
+            db_dream.tools = []
+            
+    # Handle tags update
+    if "tag_ids" in update_data:
+        tag_ids = update_data.pop("tag_ids")
+        if tag_ids is not None:
+            result = await db.execute(select(Tag).filter(Tag.id.in_(tag_ids)))
+            db_dream.tags = result.scalars().all()
+        else:
+            db_dream.tags = []
+
     for field, value in update_data.items():
         setattr(db_dream, field, value)
     
@@ -332,14 +351,31 @@ async def update_dream(
     # Get counts
     likes_count, comments_count = await get_dream_counts(db, dream_id)
     
-    return dream_to_schema(dream, likes_count=likes_count, comments_count=comments_count, is_liked=False) # User is creator, usually creators don't like their own dreams effectively or we can check. For now False or check.
-    # Actually creator can like their own dream.
-    # Let's check.
+    # Check if creator liked their own dream
     result_like = await db.execute(
         select(Like).filter(Like.dream_id == dream.id, Like.user_id == current_user.id)
     )
     is_liked = result_like.scalars().first() is not None
     return dream_to_schema(dream, likes_count=likes_count, comments_count=comments_count, is_liked=is_liked)
+
+@router.delete("/{dream_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_dream(
+    dream_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(Dream).filter(Dream.id == dream_id))
+    db_dream = result.scalars().first()
+    
+    if not db_dream:
+        raise HTTPException(status_code=404, detail="Dream not found")
+    if db_dream.creator_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Cascade delete is handled by DB relationships usually, but let's be safe or check models
+    await db.delete(db_dream)
+    await db.commit()
+    return None
 
 @router.post("/{dream_id}/fork", response_model=schemas.Dream)
 async def fork_dream(

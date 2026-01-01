@@ -94,6 +94,8 @@ class DreamUpdate(BaseModel):
     app_url: Optional[str] = None
     youtube_url: Optional[str] = None
     is_agent_submitted: Optional[bool] = None
+    tool_ids: Optional[List[int]] = None
+    tag_ids: Optional[List[int]] = None
 
 class Dream(DreamBase):
     id: int
