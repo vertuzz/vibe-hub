@@ -3,11 +3,11 @@ from httpx import AsyncClient
 import pytest
 
 @pytest.mark.asyncio
-async def test_dreams_filtering_and_errors(client: AsyncClient, auth_headers: dict):
+async def test_dreams_filtering_and_errors(client: AsyncClient, auth_headers: dict, admin_headers: dict):
     # Setup: Create tool, tag and dreams
-    t_resp = await client.post("/tools/", json={"name": "Tailwind"}, headers=auth_headers)
+    t_resp = await client.post("/tools/", json={"name": "Tailwind"}, headers=admin_headers)
     tool_id = t_resp.json()["id"]
-    tag_resp = await client.post("/tags/", json={"name": "UI"}, headers=auth_headers)
+    tag_resp = await client.post("/tags/", json={"name": "UI"}, headers=admin_headers)
     tag_id = tag_resp.json()["id"]
 
     v1_resp = await client.post("/dreams/", json={"prompt_text": "V1", "tool_ids": [tool_id], "status": "Concept"}, headers=auth_headers)

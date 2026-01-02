@@ -35,7 +35,7 @@ async def test_follow_notification(client: AsyncClient):
     notifications = response.json()
     assert len(notifications) > 0
     assert notifications[0]["content"] == "notif_u1 followed you"
-    assert notifications[0]["type"] == "follow"
+    assert notifications[0]["type"] == "FOLLOW"
 
     # Mark as read
     notif_id = notifications[0]["id"]
