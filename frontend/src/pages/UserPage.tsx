@@ -7,8 +7,9 @@ import DreamCard from '~/components/dreams/DreamCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
-import { Github, Twitter, Linkedin, MapPin, Link as LinkIcon, Calendar, UserPlus } from 'lucide-react';
+import { Github, Twitter, Linkedin, MapPin, Link as LinkIcon, Calendar, UserPlus, UserCheck } from 'lucide-react';
 import Header from '~/components/layout/Header';
+import { useAuth } from '~/contexts/AuthContext';
 
 export default function UserPage() {
     const { username } = useParams<{ username: string }>();
@@ -17,6 +18,9 @@ export default function UserPage() {
     const [likedDreams, setLikedDreams] = useState<Dream[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [followLoading, setFollowLoading] = useState(false);
+    const { user: currentUser, isAuthenticated } = useAuth();
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -45,6 +49,39 @@ export default function UserPage() {
 
         fetchUserData();
     }, [username]);
+
+    // Fetch follow status when user and currentUser are available
+    useEffect(() => {
+        const fetchFollowStatus = async () => {
+            if (!user?.id || !isAuthenticated || user.id === currentUser?.id) return;
+            try {
+                const status = await userService.checkFollowStatus(user.id);
+                setIsFollowing(status.is_following);
+            } catch (err) {
+                console.error('Failed to fetch follow status:', err);
+            }
+        };
+        fetchFollowStatus();
+    }, [user?.id, isAuthenticated, currentUser?.id]);
+
+    const handleFollowClick = async () => {
+        if (!user?.id || !isAuthenticated) return;
+
+        setFollowLoading(true);
+        try {
+            if (isFollowing) {
+                await userService.unfollowUser(user.id);
+                setIsFollowing(false);
+            } else {
+                await userService.followUser(user.id);
+                setIsFollowing(true);
+            }
+        } catch (err) {
+            console.error('Failed to update follow status:', err);
+        } finally {
+            setFollowLoading(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -104,11 +141,22 @@ export default function UserPage() {
                                     <h1 className="text-3xl font-extrabold text-gray-900">@{user.username}</h1>
                                     <p className="text-lg text-gray-500 font-medium">{user.full_name || 'Vibe Architect'}</p>
                                 </div>
-                                <div className="flex gap-2">
-                                    <Button className="rounded-full gap-2 px-6">
-                                        <UserPlus size={18} /> Follow
-                                    </Button>
-                                </div>
+                                {currentUser?.id !== user.id && (
+                                    <div className="flex gap-2">
+                                        <Button
+                                            className="rounded-full gap-2 px-6"
+                                            variant={isFollowing ? "secondary" : "default"}
+                                            onClick={handleFollowClick}
+                                            disabled={followLoading || !isAuthenticated}
+                                        >
+                                            {isFollowing ? (
+                                                <><UserCheck size={18} /> Following</>
+                                            ) : (
+                                                <><UserPlus size={18} /> Follow</>
+                                            )}
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
 
                             <p className="max-w-2xl text-gray-700 leading-relaxed">

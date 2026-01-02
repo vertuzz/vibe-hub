@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { Dream } from '~/lib/types';
 import { useAuth } from '~/contexts/AuthContext';
+import { userService } from '~/lib/services/user-service';
 
 interface DreamActionPanelProps {
     dream: Dream;
@@ -43,9 +45,48 @@ export default function DreamActionPanel({
     onShare,
     onDelete
 }: DreamActionPanelProps) {
-    const { user } = useAuth();
+    const { user, isAuthenticated } = useAuth();
     const isOwner = user?.id === dream.creator_id;
     const status = statusConfig[dream.status] || statusConfig.Concept;
+
+    // Follow state
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [followLoading, setFollowLoading] = useState(false);
+
+    // Check follow status on mount
+    useEffect(() => {
+        const fetchFollowStatus = async () => {
+            if (!dream.creator?.id || !isAuthenticated || dream.creator.id === user?.id) return;
+            try {
+                const status = await userService.checkFollowStatus(dream.creator.id);
+                setIsFollowing(status.is_following);
+            } catch (err) {
+                console.error('Failed to fetch follow status:', err);
+            }
+        };
+        fetchFollowStatus();
+    }, [dream.creator?.id, isAuthenticated, user?.id]);
+
+    const handleFollowClick = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!dream.creator?.id || !isAuthenticated) return;
+
+        setFollowLoading(true);
+        try {
+            if (isFollowing) {
+                await userService.unfollowUser(dream.creator.id);
+                setIsFollowing(false);
+            } else {
+                await userService.followUser(dream.creator.id);
+                setIsFollowing(true);
+            }
+        } catch (err) {
+            console.error('Failed to update follow status:', err);
+        } finally {
+            setFollowLoading(false);
+        }
+    };
 
     return (
         <div className="sticky top-24 space-y-6">
@@ -140,10 +181,14 @@ export default function DreamActionPanel({
                             <p className="font-bold text-[var(--foreground)] truncate">@{dream.creator.username}</p>
                         </div>
                         <button
-                            onClick={(e) => e.preventDefault()}
-                            className="text-xs font-bold text-primary hover:text-primary-dark dark:text-blue-400 dark:hover:text-blue-300"
+                            onClick={handleFollowClick}
+                            disabled={followLoading || !isAuthenticated || dream.creator.id === user?.id}
+                            className={`text-xs font-bold transition-colors ${isFollowing
+                                    ? 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                                    : 'text-primary hover:text-primary-dark dark:text-blue-400 dark:hover:text-blue-300'
+                                } ${(!isAuthenticated || dream.creator.id === user?.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                            Follow
+                            {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
                         </button>
                     </Link>
                 )}

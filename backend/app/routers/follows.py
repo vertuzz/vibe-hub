@@ -10,6 +10,22 @@ from app.routers.auth import get_current_user
 
 router = APIRouter()
 
+@router.get("/{user_id}/follow/status")
+async def get_follow_status(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Check if the current user is following the target user."""
+    result = await db.execute(
+        select(Follow).filter(
+            Follow.follower_id == current_user.id,
+            Follow.followed_id == user_id
+        )
+    )
+    follow = result.scalars().first()
+    return {"is_following": follow is not None}
+
 @router.post("/{user_id}/follow")
 async def follow_user(
     user_id: int,
