@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import (
     auth, users, dreams, comments, reviews, 
     likes, implementations, collections, 
-    follows, notifications, tools, tags, media
+    follows, notifications, tools, tags, media,
+    ownership
 )
 
 app = FastAPI(
@@ -35,6 +36,7 @@ app.include_router(notifications.router, prefix="/notifications", tags=["notific
 app.include_router(tools.router, prefix="/tools", tags=["tools"])
 app.include_router(tags.router, prefix="/tags", tags=["tags"])
 app.include_router(media.router, prefix="/media", tags=["media"])
+app.include_router(ownership.router, tags=["ownership"])
 
 @app.get("/")
 async def root():

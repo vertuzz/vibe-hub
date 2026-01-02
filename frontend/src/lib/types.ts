@@ -28,6 +28,7 @@ export interface Dream {
     app_url?: string;
     youtube_url?: string;
     is_agent_submitted: boolean;
+    is_owner: boolean;
     creator_id: number;
     creator?: DreamCreator;
     created_at: string;
@@ -68,8 +69,19 @@ export interface DreamCreate {
     app_url?: string;
     youtube_url?: string;
     is_agent_submitted?: boolean;
+    is_owner?: boolean;
     tool_ids?: number[];
     tag_ids?: number[];
+}
+
+export interface OwnershipClaim {
+    id: number;
+    dream_id: number;
+    claimant_id: number;
+    message?: string;
+    status: 'pending' | 'approved' | 'rejected';
+    created_at: string;
+    resolved_at?: string;
 }
 
 export interface Comment {

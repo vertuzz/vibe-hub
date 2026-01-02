@@ -11,6 +11,7 @@ interface DreamActionPanelProps {
     onLike: () => void;
     onShare: () => void;
     onDelete: () => void;
+    onClaim: () => void;
 }
 
 const statusConfig = {
@@ -43,7 +44,8 @@ export default function DreamActionPanel({
     isLiked,
     onLike,
     onShare,
-    onDelete
+    onDelete,
+    onClaim
 }: DreamActionPanelProps) {
     const { user, isAuthenticated } = useAuth();
     const isOwner = user?.id === dream.creator_id;
@@ -143,6 +145,17 @@ export default function DreamActionPanel({
                     </div>
                 )}
 
+                {/* Claim Ownership */}
+                {!dream.is_owner && !isOwner && isAuthenticated && (
+                    <button
+                        onClick={onClaim}
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-primary/30 text-primary font-bold text-sm hover:border-primary/60 hover:bg-primary/5 transition-all"
+                    >
+                        <span className="material-symbols-outlined text-[20px]">verified_user</span>
+                        <span>Claim Ownership</span>
+                    </button>
+                )}
+
                 {/* Secondary Actions */}
                 <div className="grid grid-cols-2 gap-3">
                     <button
@@ -184,8 +197,8 @@ export default function DreamActionPanel({
                             onClick={handleFollowClick}
                             disabled={followLoading || !isAuthenticated || dream.creator.id === user?.id}
                             className={`text-xs font-bold transition-colors ${isFollowing
-                                    ? 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
-                                    : 'text-primary hover:text-primary-dark dark:text-blue-400 dark:hover:text-blue-300'
+                                ? 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                                : 'text-primary hover:text-primary-dark dark:text-blue-400 dark:hover:text-blue-300'
                                 } ${(!isAuthenticated || dream.creator.id === user?.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}

@@ -1,5 +1,5 @@
 import api from '../api';
-import type { Dream, DreamCreate, Comment, CommentCreate, Tag, Tool } from '../types';
+import type { Dream, DreamCreate, Comment, CommentCreate, Tag, Tool, OwnershipClaim } from '../types';
 
 export interface DreamQueryParams {
     skip?: number;
@@ -87,6 +87,22 @@ export const dreamService = {
 
     getTools: async (): Promise<Tool[]> => {
         const response = await api.get('/tools/');
+        return response.data;
+    },
+
+    // Ownership Claim endpoints
+    claimOwnership: async (dreamId: number, message?: string): Promise<OwnershipClaim> => {
+        const response = await api.post(`/dreams/${dreamId}/claim-ownership`, { message });
+        return response.data;
+    },
+
+    getDreamClaims: async (dreamId: number): Promise<OwnershipClaim[]> => {
+        const response = await api.get(`/dreams/${dreamId}/ownership-claims`);
+        return response.data;
+    },
+
+    resolveClaim: async (claimId: number, status: 'approved' | 'rejected'): Promise<OwnershipClaim> => {
+        const response = await api.put(`/ownership-claims/${claimId}/resolve`, null, { params: { status } });
         return response.data;
     },
 };

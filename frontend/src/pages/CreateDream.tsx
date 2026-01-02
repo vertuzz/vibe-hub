@@ -14,6 +14,7 @@ import VisualsSection from '~/components/dreams/create/VisualsSection';
 import DetailsSection from '~/components/dreams/create/DetailsSection';
 import DreamPreview from '~/components/dreams/create/DreamPreview';
 import StatusSelector from '~/components/dreams/create/StatusSelector';
+import OwnershipSelector from '~/components/dreams/create/OwnershipSelector';
 import type { Dream } from '~/lib/types';
 
 export default function CreateDream() {
@@ -26,6 +27,7 @@ export default function CreateDream() {
     const [tagline, setTagline] = useState('');
     const [prdText, setPrdText] = useState('');
     const [status, setStatus] = useState<Dream['status']>('Concept');
+    const [isOwner, setIsOwner] = useState(false);
 
     // Selection state
     const [selectedTools, setSelectedTools] = useState<Tool[]>([]);
@@ -105,6 +107,7 @@ export default function CreateDream() {
                 tool_ids: selectedTools.map(t => t.id),
                 tag_ids: selectedTags.map(t => t.id),
                 status: status,
+                is_owner: isOwner,
                 extra_specs: {}
             });
 
@@ -174,6 +177,11 @@ export default function CreateDream() {
                         <StatusSelector
                             status={status}
                             setStatus={setStatus}
+                        />
+
+                        <OwnershipSelector
+                            isOwner={isOwner}
+                            onChange={setIsOwner}
                         />
 
                         <VisualsSection

@@ -15,6 +15,7 @@ import VisualsSection from '~/components/dreams/create/VisualsSection';
 import DetailsSection from '~/components/dreams/create/DetailsSection';
 import DreamPreview from '~/components/dreams/create/DreamPreview';
 import StatusSelector from '~/components/dreams/create/StatusSelector';
+import OwnershipSelector from '~/components/dreams/create/OwnershipSelector';
 
 export default function EditDream() {
     const { slug } = useParams<{ slug: string }>();
@@ -31,6 +32,7 @@ export default function EditDream() {
     const [tagline, setTagline] = useState('');
     const [prdText, setPrdText] = useState('');
     const [status, setStatus] = useState<Dream['status']>('Concept');
+    const [isOwner, setIsOwner] = useState(false);
 
     // Selection state
     const [selectedTools, setSelectedTools] = useState<Tool[]>([]);
@@ -71,6 +73,7 @@ export default function EditDream() {
                 setSelectedTools(dreamData.tools || []);
                 setSelectedTags(dreamData.tags || []);
                 setStatus(dreamData.status);
+                setIsOwner(dreamData.is_owner || false);
                 setExistingMedia(dreamData.media || []);
             } catch (err) {
                 console.error('Failed to fetch data:', err);
@@ -147,6 +150,7 @@ export default function EditDream() {
                 tool_ids: selectedTools.map(t => t.id),
                 tag_ids: selectedTags.map(t => t.id),
                 status: status,
+                is_owner: isOwner,
             });
 
             // 2. Upload NEW Images if any
@@ -225,6 +229,11 @@ export default function EditDream() {
                         <StatusSelector
                             status={status}
                             setStatus={setStatus}
+                        />
+
+                        <OwnershipSelector
+                            isOwner={isOwner}
+                            onChange={setIsOwner}
                         />
 
                         <VisualsSection

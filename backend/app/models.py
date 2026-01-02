@@ -41,6 +41,7 @@ class NotificationType(str, enum.Enum):
     FORK = "FORK"
     IMPLEMENTATION = "IMPLEMENTATION"
     FOLLOW = "FOLLOW"
+    OWNERSHIP_CLAIM = "OWNERSHIP_CLAIM"
 
 class Follow(Base):
     __tablename__ = "follows"
@@ -140,6 +141,7 @@ class Dream(Base):
     youtube_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     is_agent_submitted: Mapped[bool] = mapped_column(Boolean, default=False)
     slug: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    is_owner: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     
     # Lineage
     parent_dream_id: Mapped[Optional[int]] = mapped_column(ForeignKey("dreams.id"), nullable=True, index=True)
@@ -173,6 +175,25 @@ class Implementation(Base):
 
     dream: Mapped["Dream"] = relationship("Dream", back_populates="implementations")
     user: Mapped["User"] = relationship("User", back_populates="implementations")
+
+class ClaimStatus(str, enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+class OwnershipClaim(Base):
+    __tablename__ = "ownership_claims"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    dream_id: Mapped[int] = mapped_column(ForeignKey("dreams.id"), index=True)
+    claimant_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[ClaimStatus] = mapped_column(Enum(ClaimStatus), default=ClaimStatus.PENDING)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    dream: Mapped["Dream"] = relationship("Dream")
+    claimant: Mapped["User"] = relationship("User")
 
 class Comment(Base):
     __tablename__ = "comments"

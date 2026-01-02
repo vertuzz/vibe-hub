@@ -9,6 +9,7 @@ import {
     DreamComments,
     DreamPromptSection,
     DreamTools,
+    ClaimOwnershipModal,
 } from '~/components/dreams';
 import { Breadcrumbs } from '~/components/common/Breadcrumbs';
 import DeleteConfirmModal from '~/components/common/DeleteConfirmModal';
@@ -100,6 +101,7 @@ export default function ViewDream() {
 
     // Deletion state
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
     const fetchDream = useCallback(async () => {
@@ -233,6 +235,15 @@ export default function ViewDream() {
                                         </div>
                                     </>
                                 )}
+                                {dream.is_owner && (
+                                    <>
+                                        <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+                                        <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                                            <span className="material-symbols-outlined text-lg">verified</span>
+                                            <span className="text-sm font-medium">Verified Owner</span>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </section>
 
@@ -272,6 +283,7 @@ export default function ViewDream() {
                             onLike={handleLike}
                             onShare={handleShare}
                             onDelete={() => setIsDeleteModalOpen(true)}
+                            onClaim={() => setIsClaimModalOpen(true)}
                         />
                     </div>
                 </div>
@@ -282,6 +294,17 @@ export default function ViewDream() {
                 isDeleting={isDeleting}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={handleDelete}
+            />
+
+            <ClaimOwnershipModal
+                isOpen={isClaimModalOpen}
+                onClose={() => setIsClaimModalOpen(false)}
+                dreamId={dream.id}
+                dreamTitle={dream.title}
+                onSuccess={() => {
+                    alert('Ownership claim submitted successfully!');
+                    fetchDream();
+                }}
             />
         </div>
     );

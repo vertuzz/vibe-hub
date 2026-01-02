@@ -79,6 +79,7 @@ class DreamBase(BaseModel):
     app_url: Optional[str] = None
     youtube_url: Optional[str] = None
     is_agent_submitted: bool = False
+    is_owner: bool = False
 
 class DreamCreate(DreamBase):
     parent_dream_id: Optional[int] = None
@@ -94,6 +95,7 @@ class DreamUpdate(BaseModel):
     app_url: Optional[str] = None
     youtube_url: Optional[str] = None
     is_agent_submitted: Optional[bool] = None
+    is_owner: Optional[bool] = None
     tool_ids: Optional[List[int]] = None
     tag_ids: Optional[List[int]] = None
 
@@ -110,6 +112,7 @@ class Dream(DreamBase):
     likes_count: int = 0
     comments_count: int = 0
     is_liked: bool = False
+    is_owner: bool
     model_config = ConfigDict(from_attributes=True)
 
 # Implementation
@@ -225,3 +228,19 @@ class MediaResponse(BaseModel):
 class PresignedUrlRequest(BaseModel):
     filename: str
     content_type: str
+
+# Ownership Claim Schemas
+from app.models import ClaimStatus
+
+class OwnershipClaimCreate(BaseModel):
+    message: Optional[str] = None
+
+class OwnershipClaim(BaseModel):
+    id: int
+    dream_id: int
+    claimant_id: int
+    message: Optional[str] = None
+    status: ClaimStatus
+    created_at: datetime
+    resolved_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)

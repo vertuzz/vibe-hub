@@ -43,6 +43,7 @@ def dream_to_schema(
         "app_url": dream.app_url,
         "youtube_url": dream.youtube_url,
         "is_agent_submitted": dream.is_agent_submitted,
+        "is_owner": dream.is_owner,
         "creator_id": dream.creator_id,
         "parent_dream_id": dream.parent_dream_id,
         "created_at": dream.created_at,
@@ -237,6 +238,7 @@ async def create_dream(
         app_url=dream_in.app_url,
         youtube_url=dream_in.youtube_url,
         is_agent_submitted=dream_in.is_agent_submitted,
+        is_owner=dream_in.is_owner,
         parent_dream_id=dream_in.parent_dream_id,
         slug=slug
     )
