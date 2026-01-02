@@ -37,6 +37,7 @@ USERS = [
         "email": "admin@dreamware.com",
         "password": "password123",
         "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=admin",
+        "is_admin": True,
         "reputation_score": 100.0
     },
     {
@@ -149,6 +150,7 @@ async def seed_data():
                     email=user_data["email"],
                     hashed_password=get_password_hash(user_data["password"]),
                     avatar=user_data["avatar"],
+                    is_admin=user_data.get("is_admin", False),
                     reputation_score=user_data["reputation_score"],
                     api_key=generate_api_key() if user_data.get("is_agent") else None
                 )

@@ -31,6 +31,7 @@ class UserPublic(BaseModel):
     username: str
     avatar: Optional[str] = None
     reputation_score: float
+    is_admin: bool = False
     links: List[UserLink] = []
     model_config = ConfigDict(from_attributes=True)
 

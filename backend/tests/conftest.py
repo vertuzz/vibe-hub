@@ -123,3 +123,21 @@ async def auth_headers(client):
     response = await client.post("/auth/login", data={"username": "testuser", "password": "password123"})
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
+@pytest_asyncio.fixture
+async def admin_headers(client, db_session):
+    # Register and login a test admin
+    user_data = {"username": "adminuser", "email": "admin_test@example.com", "password": "password123"}
+    await client.post("/auth/register", json=user_data)
+    
+    # Manually promote to admin in DB
+    from app.models import User
+    from sqlalchemy import update
+    await db_session.execute(
+        update(User).where(User.username == "adminuser").values(is_admin=True)
+    )
+    await db_session.commit()
+    
+    # Login manually via form data
+    response = await client.post("/auth/login", data={"username": "adminuser", "password": "password123"})
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}

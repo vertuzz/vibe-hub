@@ -57,6 +57,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     avatar: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     reputation_score: Mapped[float] = mapped_column(Float, default=0.0, index=True)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     
     # Auth fields
     hashed_password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)

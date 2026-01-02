@@ -37,7 +37,7 @@ async def test_create_dream_with_ownership(client: AsyncClient, auth_headers: di
     assert response.json()["is_owner"] == False
 
 @pytest.mark.asyncio
-async def test_ownership_claim_lifecycle(client: AsyncClient):
+async def test_ownership_claim_lifecycle(client: AsyncClient, admin_headers: dict):
     # Setup: User A creates a dream as non-owner
     headers_a = await get_auth_headers(client, "user_a")
     dream_resp = await client.post("/dreams/", json={
@@ -71,13 +71,11 @@ async def test_ownership_claim_lifecycle(client: AsyncClient):
     assert claims_resp.status_code == 200
     assert len(claims_resp.json()) >= 1
 
-    # Resolve claim (Approval)
-    # Note: In our current impl, anyone logged in can resolve if we don't have admin check.
-    # We should ideally test that the ownership transfers.
+    # Resolve claim (Approval) - only admin can do this now
     resolve_resp = await client.put(
         f"/ownership-claims/{claim_id}/resolve",
         params={"status": "approved"},
-        headers=headers_a
+        headers=admin_headers
     )
     assert resolve_resp.status_code == 200
     assert resolve_resp.json()["status"] == "approved"
@@ -92,7 +90,7 @@ async def test_ownership_claim_lifecycle(client: AsyncClient):
     assert dream_data["creator_id"] == user_b_id
 
 @pytest.mark.asyncio
-async def test_ownership_claim_rejection(client: AsyncClient):
+async def test_ownership_claim_rejection(client: AsyncClient, admin_headers: dict):
     # Setup: User A creates a dream
     headers_a = await get_auth_headers(client, "user_reject_creator")
     dream_resp = await client.post("/dreams/", json={
@@ -111,11 +109,11 @@ async def test_ownership_claim_rejection(client: AsyncClient):
     )
     claim_id = claim_resp.json()["id"]
 
-    # User A rejects claim
+    # Admin rejects claim
     resolve_resp = await client.put(
         f"/ownership-claims/{claim_id}/resolve",
         params={"status": "rejected"},
-        headers=headers_a
+        headers=admin_headers
     )
     assert resolve_resp.status_code == 200
     assert resolve_resp.json()["status"] == "rejected"

@@ -8,7 +8,7 @@ from datetime import datetime
 from app.database import get_db
 from app.models import Dream, User, OwnershipClaim, ClaimStatus, Notification, NotificationType
 from app.schemas import schemas
-from app.routers.auth import get_current_user
+from app.routers.auth import get_current_user, require_admin
 
 router = APIRouter()
 
@@ -61,24 +61,32 @@ async def claim_ownership(
     await db.refresh(db_claim)
     return db_claim
 
+@router.get("/ownership-claims", response_model=List[schemas.OwnershipClaim])
+async def get_all_pending_claims(
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all pending ownership claims (admin only)."""
+    stmt = select(OwnershipClaim).filter(
+        OwnershipClaim.status == ClaimStatus.PENDING
+    ).order_by(OwnershipClaim.created_at)
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
 @router.get("/dreams/{dream_id}/ownership-claims", response_model=List[schemas.OwnershipClaim])
 async def get_dream_claims(
     dream_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # Only dream creator or claimant should probably see this for now
-    # In a real app, this might be admin-only
+    # Only admin or dream creator should see this
     result = await db.execute(select(Dream).filter(Dream.id == dream_id))
     dream = result.scalars().first()
     if not dream:
         raise HTTPException(status_code=404, detail="Dream not found")
     
-    # For now, let's allow the dream creator to see claims
-    if dream.creator_id != current_user.id:
-         # Also allow claimants to see their own claims? 
-         # Let's keep it simple: admin or creator. Since we don't have admin flag, just creator.
-         pass
+    if not current_user.is_admin and dream.creator_id != current_user.id:
+         raise HTTPException(status_code=403, detail="Not authorized to see claims for this dream")
 
     stmt = select(OwnershipClaim).filter(OwnershipClaim.dream_id == dream_id)
     result = await db.execute(stmt)
@@ -88,13 +96,10 @@ async def get_dream_claims(
 async def resolve_claim(
     claim_id: int,
     status: ClaimStatus,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    # Resolve claim - for now, we'll let the dream creator approve it? 
-    # Or should it be global admin? The user said "I will be asking... in manual mode".
-    # This implies the site owner (admin) resolves it.
-    
+    """Resolve an ownership claim (admin only)."""
     result = await db.execute(
         select(OwnershipClaim)
         .options(selectinload(OwnershipClaim.dream))
@@ -106,12 +111,6 @@ async def resolve_claim(
     
     if claim.status != ClaimStatus.PENDING:
         raise HTTPException(status_code=400, detail="Claim already resolved")
-
-    # Permission check: for now, only dream creator can resolve? 
-    # Actually, if someone else claims, the original submitter might not want to give up?
-    # But usually, it's the admin. Let's allow the dream creator to approve for now as a "transfer" mechanism,
-    # or just leave it open if we don't have admins.
-    # TODO: Add admin check when implemented.
     
     claim.status = status
     claim.resolved_at = datetime.now()
