@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { User } from '../lib/types';
 import { authService } from '../lib/services/auth-service';
 
@@ -20,6 +20,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
     const [isLoading, setIsLoading] = useState(true);
+    const didCheckAuth = useRef(false);
 
     const checkAuth = async () => {
         const storedToken = localStorage.getItem('token');
@@ -42,6 +43,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     useEffect(() => {
+        if (didCheckAuth.current) return;
+        didCheckAuth.current = true;
         checkAuth();
     }, []);
 
