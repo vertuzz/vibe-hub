@@ -78,7 +78,7 @@ export default function DetailsSection({
                         </div>
                     </div>
                     <div className="flex flex-col gap-3">
-                        <label className="text-slate-700 dark:text-slate-300 text-sm font-semibold">Aesthetic Tags</label>
+                        <label className="text-slate-700 dark:text-slate-300 text-sm font-semibold">Tags</label>
                         <div className="flex flex-wrap items-center gap-2">
                             {selectedTags.map(tag => (
                                 <span key={tag.id} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium border border-transparent">

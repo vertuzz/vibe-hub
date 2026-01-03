@@ -62,7 +62,7 @@ export default function Header({ onSearch }: HeaderProps) {
             </Link>
             {user?.is_admin && (
               <Link
-                to="/admin/claims"
+                to="/admin"
                 className="text-sm font-semibold text-primary hover:text-primary-dark transition-colors flex items-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[18px]">admin_panel_settings</span>

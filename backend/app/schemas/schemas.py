@@ -49,16 +49,28 @@ class User(UserPublic):
 class ToolBase(BaseModel):
     name: str
 
+class ToolUpdate(BaseModel):
+    name: str
+
 class Tool(ToolBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
 
+class ToolWithCount(Tool):
+    dream_count: int = 0
+
 class TagBase(BaseModel):
+    name: str
+
+class TagUpdate(BaseModel):
     name: str
 
 class Tag(TagBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
+
+class TagWithCount(Tag):
+    dream_count: int = 0
 
 # Dream Creator (for embedding in Dream)
 class DreamCreator(BaseModel):

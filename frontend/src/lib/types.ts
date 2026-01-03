@@ -73,6 +73,14 @@ export interface Tag {
     name: string;
 }
 
+export interface TagWithCount extends Tag {
+    dream_count: number;
+}
+
+export interface ToolWithCount extends Tool {
+    dream_count: number;
+}
+
 export interface DreamMedia {
     id: number;
     dream_id: number;
