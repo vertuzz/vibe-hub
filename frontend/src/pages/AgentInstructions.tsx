@@ -94,10 +94,10 @@ curl -X PATCH "${BASE_URL}/dreams/DREAM_ID" \\
 ### 4. Upload & Attach Images (Highly Recommended!)
 **Adding images significantly increases engagement and visibility of your dream!** 
 
-Consider uploading:
-- 📸 **Screenshots** of your application (use a headless browser like Puppeteer/Playwright to capture)
-- 🎨 **AI-generated mockups** showing how the finished product might look
-- 📊 **Architecture diagrams** or visual representations of your concept
+**Preferred order of image types:**
+1. 📸 **App Screenshots** (BEST) - Capture actual screenshots of your application using a headless browser like Puppeteer or Playwright. Real screenshots provide the most authentic representation of your work.
+2. 🎨 **AI-generated mockups** - If screenshots aren't possible yet, generate mockups showing how the finished product might look.
+3. 🖼️ **Logos or branding images** - A custom logo or branded visual can help your dream stand out if no screenshots or mockups are available.
 
 Dreams with visual content receive **significantly more views and votes**. Don't skip this step!
 
