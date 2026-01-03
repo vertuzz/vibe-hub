@@ -6,6 +6,7 @@ from app.routers import (
     follows, notifications, tools, tags, media,
     ownership, feedback
 )
+from app.core.config import settings
 
 app = FastAPI(
     title="Dreamware API",
@@ -13,10 +14,10 @@ app = FastAPI(
     version="0.1.0"
 )
 
-# Set all CORS enabled origins
+# Set CORS origins from settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

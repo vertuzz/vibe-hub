@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings
-from pydantic import ConfigDict
-from typing import Optional
+from pydantic import ConfigDict, field_validator
+from typing import Optional, List
 import os
 from dotenv import load_dotenv
 
@@ -9,11 +9,21 @@ load_dotenv()
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Dreamware"
     API_V1_STR: str = "/api/v1"
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-for-development-only")
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
     
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./vibe_hub.db")
+    
+    # CORS settings - comma-separated list of allowed origins
+    CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
+    
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """Parse CORS_ORIGINS into a list."""
+        if not self.CORS_ORIGINS:
+            return []
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
     
     @property
     def async_database_url(self) -> str:
