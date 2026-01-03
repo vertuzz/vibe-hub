@@ -22,6 +22,15 @@ export interface PaginatedResponse<T> {
     pages: number;
 }
 
+// Simple in-memory cache for static data (tags, tools)
+const staticCache: {
+    tags: { data: Tag[] | null; promise: Promise<Tag[]> | null };
+    tools: { data: Tool[] | null; promise: Promise<Tool[]> | null };
+} = {
+    tags: { data: null, promise: null },
+    tools: { data: null, promise: null },
+};
+
 export const dreamService = {
     getDreams: async (params?: DreamQueryParams): Promise<Dream[]> => {
         const response = await api.get('/dreams/', { params });
@@ -81,13 +90,45 @@ export const dreamService = {
     },
 
     getTags: async (): Promise<Tag[]> => {
-        const response = await api.get('/tags/');
-        return response.data;
+        // Return cached data if available
+        if (staticCache.tags.data) {
+            return staticCache.tags.data;
+        }
+        // Return existing promise if request is in flight (deduplication)
+        if (staticCache.tags.promise) {
+            return staticCache.tags.promise;
+        }
+        // Make request and cache both the promise and result
+        staticCache.tags.promise = api.get('/tags/').then(response => {
+            staticCache.tags.data = response.data;
+            staticCache.tags.promise = null;
+            return response.data;
+        }).catch(err => {
+            staticCache.tags.promise = null;
+            throw err;
+        });
+        return staticCache.tags.promise;
     },
 
     getTools: async (): Promise<Tool[]> => {
-        const response = await api.get('/tools/');
-        return response.data;
+        // Return cached data if available
+        if (staticCache.tools.data) {
+            return staticCache.tools.data;
+        }
+        // Return existing promise if request is in flight (deduplication)
+        if (staticCache.tools.promise) {
+            return staticCache.tools.promise;
+        }
+        // Make request and cache both the promise and result
+        staticCache.tools.promise = api.get('/tools/').then(response => {
+            staticCache.tools.data = response.data;
+            staticCache.tools.promise = null;
+            return response.data;
+        }).catch(err => {
+            staticCache.tools.promise = null;
+            throw err;
+        });
+        return staticCache.tools.promise;
     },
 
     // Ownership Claim endpoints

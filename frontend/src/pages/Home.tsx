@@ -59,10 +59,13 @@ export default function Home() {
     const [hasMore, setHasMore] = useState(true);
     const [showSortDropdown, setShowSortDropdown] = useState(false);
     const [cacheRestored, setCacheRestored] = useState(false);
+    const [hasMounted, setHasMounted] = useState(false);
     const itemsPerPage = 20;
 
     // Ref for scroll restoration
     const pendingScrollRestore = useRef<number | null>(null);
+    // Track if initial fetch was done by this component instance
+    const didInitialFetch = useRef(false);
 
     const observer = useRef<IntersectionObserver | null>(null);
     const lastDreamElementRef = useCallback(
@@ -155,7 +158,7 @@ export default function Home() {
         }
     }, [page, sortBy, selectedTagIds, selectedToolIds, selectedStatuses, searchQuery]);
 
-    // Load filter data (tags, tools) on mount
+    // Load filter data (tags, tools) on mount - service handles caching/deduplication
     useEffect(() => {
         const loadInitialData = async () => {
             try {
@@ -172,8 +175,11 @@ export default function Home() {
         loadInitialData();
     }, []);
 
-    // Check cache on mount and restore if valid
+    // Check cache on mount and restore if valid - this is the ONLY place that triggers initial fetch
     useEffect(() => {
+        if (didInitialFetch.current) return;
+        didInitialFetch.current = true;
+
         const paramsKey = createParamsKey(searchParams);
         const cached = loadCache(paramsKey);
 
@@ -187,7 +193,9 @@ export default function Home() {
         } else {
             fetchDreams(true);
         }
-        // Only run on mount
+
+        // Mark as mounted after initial fetch is done
+        setHasMounted(true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -200,9 +208,11 @@ export default function Home() {
         }
     }, [cacheRestored, dreams]);
 
-    // Filter/sort changes (only if not initial cache restore)
+    // Filter/sort changes - only trigger AFTER mount (not on initial render)
     useEffect(() => {
-        if (cacheRestored) return; // Skip if just restored from cache
+        // Skip on initial mount or when cache was just restored
+        if (!hasMounted || cacheRestored) return;
+
         setPage(1);
         setHasMore(true);
         fetchDreams(true);
@@ -217,9 +227,15 @@ export default function Home() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page]);
 
-    // Debounced search handler
+    // Debounced search handler - only trigger AFTER mount
+    const prevSearchQuery = useRef(searchQuery);
     useEffect(() => {
-        if (cacheRestored) return;
+        // Skip on initial mount or if cache was restored
+        if (!hasMounted || cacheRestored) return;
+        // Skip if search query hasn't actually changed
+        if (prevSearchQuery.current === searchQuery) return;
+        prevSearchQuery.current = searchQuery;
+
         const timer = setTimeout(() => {
             setPage(1);
             setHasMore(true);
@@ -227,7 +243,7 @@ export default function Home() {
         }, 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchQuery]);
+    }, [searchQuery, hasMounted]);
 
     // Save cache on unmount
     useEffect(() => {
