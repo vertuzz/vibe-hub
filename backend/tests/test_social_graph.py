@@ -32,11 +32,20 @@ async def test_social_graph_and_notifications(client: AsyncClient):
     
     # 5. User B checks notifications
     notif_resp = await client.get("/notifications/", headers=headersB)
-    assert len(notif_resp.json()) >= 1
-    assert "liked your dream" in notif_resp.json()[0]["content"]
+    notifications = notif_resp.json()
+    assert len(notifications) >= 2  # Should have both follow and like notifications
+    
+    # Find the like notification
+    like_notif = None
+    for notif in notifications:
+        if "liked your dream" in notif["content"]:
+            like_notif = notif
+            break
+    
+    assert like_notif is not None, "Should have a like notification"
     
     # Mark read
-    notif_id = notif_resp.json()[0]["id"]
+    notif_id = like_notif["id"]
     await client.patch(f"/notifications/{notif_id}/read", headers= headersB)
     
     # 6. User A unfollows User B
