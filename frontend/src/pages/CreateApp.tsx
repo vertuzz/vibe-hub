@@ -31,7 +31,7 @@ export default function CreateApp() {
     const [tagline, setTagline] = useState('');
     const [prdText, setPrdText] = useState('');
     const [status, setStatus] = useState<App['status']>('Concept');
-    const [isOwner, setIsOwner] = useState(false);
+    const [isOwner, setIsOwner] = useState(true);
 
     // Selection state
     const [selectedTools, setSelectedTools] = useState<Tool[]>([]);
