@@ -2,6 +2,8 @@ import pytest
 from httpx import AsyncClient
 from unittest.mock import patch, MagicMock, AsyncMock
 from app.core.config import settings
+from app.models import User
+from app.core.security import generate_api_key
 
 @pytest.fixture(autouse=True)
 def mock_oauth_settings():
@@ -82,13 +84,16 @@ async def test_github_login_new_user(client: AsyncClient):
         assert "token_type" in data
 
 @pytest.mark.asyncio
-async def test_google_login_existing_user_by_email(client: AsyncClient):
-    # Register user first
-    await client.post("/auth/register", json={
-        "username": "existinguser",
-        "email": "google@example.com",
-        "password": "password123"
-    })
+async def test_google_login_existing_user_by_email(client: AsyncClient, db_session):
+    # Create user directly in DB
+    user = User(
+        username="existinguser",
+        email="google@example.com",
+        api_key=generate_api_key(),
+        reputation_score=0.0
+    )
+    db_session.add(user)
+    await db_session.commit()
 
     # Simplified mock
     mock_async_client = AsyncMock()
@@ -214,13 +219,16 @@ async def test_github_login_no_email_fail(client: AsyncClient):
         assert "Failed to get GitHub user email" in response.json()["detail"]
 
 @pytest.mark.asyncio
-async def test_google_login_username_collision(client: AsyncClient):
-    # Register user with the same base username
-    await client.post("/auth/register", json={
-        "username": "googleuser",
-        "email": "other@example.com",
-        "password": "password123"
-    })
+async def test_google_login_username_collision(client: AsyncClient, db_session):
+    # Create user with the same base username directly in DB
+    user = User(
+        username="googleuser",
+        email="other@example.com",
+        api_key=generate_api_key(),
+        reputation_score=0.0
+    )
+    db_session.add(user)
+    await db_session.commit()
 
     # Simplified mock
     mock_async_client = AsyncMock()

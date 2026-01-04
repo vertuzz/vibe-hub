@@ -1,18 +1,7 @@
 import pytest
 from httpx import AsyncClient
+from tests.conftest import create_test_user
 
-async def get_auth_headers(client: AsyncClient, username: str):
-    await client.post("/auth/register", json={
-        "username": username,
-        "email": f"{username}@example.com",
-        "password": "password123"
-    })
-    response = await client.post("/auth/login", data={
-        "username": username,
-        "password": "password123"
-    })
-    token = response.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
 
 @pytest.mark.asyncio
 async def test_create_app_with_ownership(client: AsyncClient, auth_headers: dict):
@@ -36,10 +25,11 @@ async def test_create_app_with_ownership(client: AsyncClient, auth_headers: dict
     assert response.status_code == 200
     assert response.json()["is_owner"] == False
 
+
 @pytest.mark.asyncio
-async def test_ownership_claim_lifecycle(client: AsyncClient, admin_headers: dict):
+async def test_ownership_claim_lifecycle(client: AsyncClient, db_session, admin_headers: dict):
     # Setup: User A creates an app as non-owner
-    headers_a = await get_auth_headers(client, "user_a")
+    user_a, headers_a = await create_test_user(db_session, username="user_a", email="user_a@example.com")
     app_resp = await client.post("/apps/", json={
         "title": "Global App",
         "prompt_text": "Someone else's app",
@@ -48,7 +38,7 @@ async def test_ownership_claim_lifecycle(client: AsyncClient, admin_headers: dic
     app_id = app_resp.json()["id"]
     
     # User B claims ownership
-    headers_b = await get_auth_headers(client, "user_b")
+    user_b, headers_b = await create_test_user(db_session, username="user_b", email="user_b@example.com")
     claim_resp = await client.post(
         f"/apps/{app_id}/claim-ownership",
         json={"message": "I am the real dev. Check my site at userb.com"},
@@ -84,15 +74,13 @@ async def test_ownership_claim_lifecycle(client: AsyncClient, admin_headers: dic
     app_final_resp = await client.get(f"/apps/{app_id}")
     app_data = app_final_resp.json()
     assert app_data["is_owner"] == True
-    # We need to get User B's ID to verify creator_id
-    user_b_resp = await client.get("/auth/me", headers=headers_b)
-    user_b_id = user_b_resp.json()["id"]
-    assert app_data["creator_id"] == user_b_id
+    assert app_data["creator_id"] == user_b.id
+
 
 @pytest.mark.asyncio
-async def test_ownership_claim_rejection(client: AsyncClient, admin_headers: dict):
+async def test_ownership_claim_rejection(client: AsyncClient, db_session, admin_headers: dict):
     # Setup: User A creates an app
-    headers_a = await get_auth_headers(client, "user_reject_creator")
+    user_a, headers_a = await create_test_user(db_session, username="user_reject_creator", email="urc@example.com")
     app_resp = await client.post("/apps/", json={
         "title": "Rejected App",
         "prompt_text": "Test rejection",
@@ -101,7 +89,7 @@ async def test_ownership_claim_rejection(client: AsyncClient, admin_headers: dic
     app_id = app_resp.json()["id"]
 
     # User C claims ownership
-    headers_c = await get_auth_headers(client, "user_c")
+    user_c, headers_c = await create_test_user(db_session, username="user_c", email="user_c@example.com")
     claim_resp = await client.post(
         f"/apps/{app_id}/claim-ownership",
         json={"message": "I'm a fake"},
@@ -121,4 +109,4 @@ async def test_ownership_claim_rejection(client: AsyncClient, admin_headers: dic
     # Verify app ownership NOT transferred
     app_final_resp = await client.get(f"/apps/{app_id}")
     assert app_final_resp.json()["is_owner"] == False
-    assert app_final_resp.json()["creator_id"] != (await client.get("/auth/me", headers=headers_c)).json()["id"]
+    assert app_final_resp.json()["creator_id"] != user_c.id

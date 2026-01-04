@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import StaticPool, NullPool
 from dotenv import load_dotenv
+from datetime import timedelta
+from typing import Tuple
 import os
 import sys
 
@@ -14,8 +16,9 @@ load_dotenv()
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.main import app
-from app.models import Base
+from app.models import Base, User
 from app.database import get_db
+from app.core.security import create_access_token, generate_api_key
 
 # Use environment variable for test DB or default to in-memory SQLite
 SQLALCHEMY_DATABASE_URL = os.getenv("TEST_DATABASE_URL", "sqlite://")
@@ -113,31 +116,91 @@ async def client(db_session):
     
     app.dependency_overrides.clear()
 
-@pytest_asyncio.fixture
-async def auth_headers(client):
-    # Register and login a test user
-    user_data = {"username": "testuser", "email": "test@example.com", "password": "password123"}
-    await client.post("/auth/register", json=user_data)
-    
-    # Login manually via form data
-    response = await client.post("/auth/login", data={"username": "testuser", "password": "password123"})
-    token = response.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
-@pytest_asyncio.fixture
-async def admin_headers(client, db_session):
-    # Register and login a test admin
-    user_data = {"username": "adminuser", "email": "admin_test@example.com", "password": "password123"}
-    await client.post("/auth/register", json=user_data)
-    
-    # Manually promote to admin in DB
-    from app.models import User
-    from sqlalchemy import update
-    await db_session.execute(
-        update(User).where(User.username == "adminuser").values(is_admin=True)
+
+# Helper function to create test users directly in DB
+async def create_test_user(
+    db_session: AsyncSession,
+    username: str = "testuser",
+    email: str = "test@example.com",
+    is_admin: bool = False
+) -> Tuple[User, dict]:
+    """
+    Create a test user directly in DB and return (user, auth_headers).
+    This bypasses OAuth and creates JWT token directly for testing.
+    """
+    user = User(
+        username=username,
+        email=email,
+        api_key=generate_api_key(),
+        reputation_score=0.0,
+        is_admin=is_admin
     )
+    db_session.add(user)
     await db_session.commit()
+    await db_session.refresh(user)
     
-    # Login manually via form data
-    response = await client.post("/auth/login", data={"username": "adminuser", "password": "password123"})
-    token = response.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+    # Generate JWT token directly
+    token = create_access_token(
+        data={"sub": str(user.id)},
+        expires_delta=timedelta(hours=1)
+    )
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    return user, headers
+
+
+@pytest_asyncio.fixture
+async def auth_headers(db_session) -> dict:
+    """Authenticated headers for a regular test user."""
+    _, headers = await create_test_user(db_session)
+    return headers
+
+
+@pytest_asyncio.fixture
+async def auth_user_and_headers(db_session) -> Tuple[User, dict]:
+    """Returns both the user object and auth headers."""
+    return await create_test_user(db_session)
+
+
+@pytest_asyncio.fixture
+async def admin_headers(db_session) -> dict:
+    """Authenticated headers for an admin user."""
+    _, headers = await create_test_user(
+        db_session, 
+        username="adminuser", 
+        email="admin@example.com", 
+        is_admin=True
+    )
+    return headers
+
+
+@pytest_asyncio.fixture
+async def admin_user_and_headers(db_session) -> Tuple[User, dict]:
+    """Returns both the admin user object and auth headers."""
+    return await create_test_user(
+        db_session, 
+        username="adminuser", 
+        email="admin@example.com", 
+        is_admin=True
+    )
+
+
+@pytest_asyncio.fixture
+async def second_user_headers(db_session) -> dict:
+    """Authenticated headers for a second test user (for multi-user tests)."""
+    _, headers = await create_test_user(
+        db_session, 
+        username="user2", 
+        email="user2@example.com"
+    )
+    return headers
+
+
+@pytest_asyncio.fixture
+async def second_user_and_headers(db_session) -> Tuple[User, dict]:
+    """Returns both the second user object and auth headers."""
+    return await create_test_user(
+        db_session, 
+        username="user2", 
+        email="user2@example.com"
+    )

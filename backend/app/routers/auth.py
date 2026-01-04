@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, APIKeyHeader
+from fastapi.security import OAuth2PasswordBearer, APIKeyHeader
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -17,8 +17,9 @@ from app.core.config import settings
 
 router = APIRouter()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
+# OAuth2 scheme - tokenUrl is kept for OpenAPI docs compatibility
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token", auto_error=False)
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="auth/token", auto_error=False)
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 async def get_current_user(
@@ -102,55 +103,6 @@ async def get_current_user_optional(
             return None
     
     return user
-
-@router.post("/register", response_model=schemas.User)
-async def register(user_in: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
-    # Check if user already exists
-    result = await db.execute(
-        select(User).filter(
-            (User.username == user_in.username) | (User.email == user_in.email)
-        )
-    )
-    user = result.scalars().first()
-    if user:
-        raise HTTPException(
-            status_code=400,
-            detail="User with this username or email already exists"
-        )
-    
-    db_user = User(
-        username=user_in.username,
-        email=user_in.email,
-        hashed_password=security.get_password_hash(user_in.password),
-        api_key=generate_api_key(),
-        reputation_score=0.0
-    )
-    db.add(db_user)
-    await db.commit()
-    # Reload with eager loading for serialization
-    result = await db.execute(
-        select(User).options(selectinload(User.links)).filter(User.id == db_user.id)
-    )
-    db_user = result.scalars().first()
-    return db_user
-
-@router.post("/login", response_model=schemas.Token)
-async def login(db: AsyncSession = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
-    result = await db.execute(select(User).filter(User.username == form_data.username))
-    user = result.scalars().first()
-    if not user or not security.verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = security.create_access_token(
-        data={"sub": str(user.id)}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
-
 
 @router.get("/me", response_model=schemas.User)
 async def read_users_me(current_user: User = Depends(get_current_user)):

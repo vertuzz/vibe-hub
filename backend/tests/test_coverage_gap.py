@@ -1,9 +1,10 @@
 import pytest
 from httpx import AsyncClient
-import pytest
+from tests.conftest import create_test_user
+
 
 @pytest.mark.asyncio
-async def test_apps_filtering_and_errors(client: AsyncClient, auth_headers: dict, admin_headers: dict):
+async def test_apps_filtering_and_errors(client: AsyncClient, db_session, auth_headers: dict, admin_headers: dict):
     # Setup: Create tool, tag and apps
     t_resp = await client.post("/tools/", json={"name": "Tailwind"}, headers=admin_headers)
     tool_id = t_resp.json()["id"]
@@ -38,11 +39,8 @@ async def test_apps_filtering_and_errors(client: AsyncClient, auth_headers: dict
     assert resp.status_code == 404
 
     # 6. Error: Update others' app
-    # Register another user to own an app
-    await client.post("/auth/register", json={"username": "other", "email": "other@v.com", "password": "p"})
-    # Login as other to create an app
-    login_resp = await client.post("/auth/login", data={"username": "other", "password": "p"})
-    other_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
+    # Create another user directly in DB to own an app
+    _, other_headers = await create_test_user(db_session, username="other", email="other@v.com")
     other_app_resp = await client.post("/apps/", json={"prompt_text": "Other App"}, headers=other_headers)
     other_app = other_app_resp.json()
 
@@ -112,11 +110,9 @@ async def test_likes_errors_and_unlikes(client: AsyncClient, auth_headers: dict)
     assert (await client.post("/comments/9999/vote", params={"value": 1}, headers=auth_headers)).status_code == 404
 
 @pytest.mark.asyncio
-async def test_notifications_read(client: AsyncClient, auth_headers: dict):
-    # 1. Register a victim (the one who will receive the notification)
-    await client.post("/auth/register", json={"username": "victim_n", "email": "vn@v.com", "password": "p"})
-    login_resp = await client.post("/auth/login", data={"username": "victim_n", "password": "p"})
-    victim_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
+async def test_notifications_read(client: AsyncClient, db_session, auth_headers: dict):
+    # 1. Create a victim (the one who will receive the notification)
+    _, victim_headers = await create_test_user(db_session, username="victim_n", email="vn@v.com")
     
     # Victim creates an app
     app_resp = await client.post("/apps/", json={"prompt_text": "Notify me"}, headers=victim_headers)
@@ -144,7 +140,7 @@ async def test_notifications_read(client: AsyncClient, auth_headers: dict):
     assert resp.status_code == 200
 
 @pytest.mark.asyncio
-async def test_reviews_and_comments_errors(client: AsyncClient, auth_headers: dict):
+async def test_reviews_and_comments_errors(client: AsyncClient, db_session, auth_headers: dict):
     app_resp = await client.post("/apps/", json={"prompt_text": "Err App"}, headers=auth_headers)
     app = app_resp.json()
     app_id = app["id"]
@@ -154,9 +150,7 @@ async def test_reviews_and_comments_errors(client: AsyncClient, auth_headers: di
     assert (await client.delete("/comments/9999", headers=auth_headers)).status_code == 404
 
     # 2. Unauthorized comment edit
-    await client.post("/auth/register", json={"username": "comm_owner", "email": "co@v.com", "password": "p"})
-    login_resp = await client.post("/auth/login", data={"username": "comm_owner", "password": "p"})
-    co_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
+    _, co_headers = await create_test_user(db_session, username="comm_owner", email="co@v.com")
     comm_resp = await client.post(f"/apps/{app_id}/comments", json={"content": "Mine"}, headers=co_headers)
     comm = comm_resp.json()
 
@@ -186,7 +180,7 @@ async def test_reviews_and_comments_errors(client: AsyncClient, auth_headers: di
     assert (await client.delete(f"/comments/{comm2['id']}", headers= co_headers)).status_code == 403
 
 @pytest.mark.asyncio
-async def test_collections_edge_cases(client: AsyncClient, auth_headers: dict):
+async def test_collections_edge_cases(client: AsyncClient, db_session, auth_headers: dict):
     app_resp = await client.post("/apps/", json={"prompt_text": "In Col"}, headers=auth_headers)
     app = app_resp.json()
     
@@ -203,9 +197,7 @@ async def test_collections_edge_cases(client: AsyncClient, auth_headers: dict):
     assert resp.status_code == 404
 
     # 4. Add to someone else's collection
-    await client.post("/auth/register", json={"username": "col_owner", "email": "col@v.com", "password": "p"})
-    login_resp = await client.post("/auth/login", data={"username": "col_owner", "password": "p"})
-    col_owner_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
+    _, col_owner_headers = await create_test_user(db_session, username="col_owner", email="col@v.com")
     
     resp = await client.post(f"/collections/{col['id']}/apps/{app['id']}", headers=col_owner_headers)
     assert resp.status_code == 404 # It returns 404 because query filters by owner_id
@@ -227,7 +219,7 @@ async def test_collections_edge_cases(client: AsyncClient, auth_headers: dict):
     assert resp.status_code == 403
 
 @pytest.mark.asyncio
-async def test_reviews_comprehensive(client: AsyncClient, auth_headers: dict):
+async def test_reviews_comprehensive(client: AsyncClient, db_session, auth_headers: dict):
     app_resp = await client.post("/apps/", json={"prompt_text": "Review Hub"}, headers=auth_headers)
     app = app_resp.json()
     app_id = app["id"]
@@ -241,9 +233,7 @@ async def test_reviews_comprehensive(client: AsyncClient, auth_headers: dict):
     assert resp.status_code == 400
 
     # 3. Delete review - Unauthorized
-    await client.post("/auth/register", json={"username": "not_reviewer", "email": "nr@v.com", "password": "p"})
-    login_resp = await client.post("/auth/login", data={"username": "not_reviewer", "password": "p"})
-    other_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
+    _, other_headers = await create_test_user(db_session, username="not_reviewer", email="nr@v.com")
     
     resp = await client.delete(f"/reviews/{review['id']}", headers=other_headers)
     assert resp.status_code == 403
@@ -255,7 +245,7 @@ async def test_reviews_comprehensive(client: AsyncClient, auth_headers: dict):
     assert (await client.delete(f"/reviews/{review['id']}", headers=auth_headers)).status_code == 204
 
 @pytest.mark.asyncio
-async def test_follows_and_impls_edge_cases(client: AsyncClient, auth_headers: dict):
+async def test_follows_and_impls_edge_cases(client: AsyncClient, db_session, auth_headers: dict):
     # Setup
     me_resp = await client.get("/auth/me", headers=auth_headers)
     me = me_resp.json()
@@ -268,14 +258,8 @@ async def test_follows_and_impls_edge_cases(client: AsyncClient, auth_headers: d
     assert (await client.post("/users/9999/follow", headers=auth_headers)).status_code == 404
 
     # 3. Already following
-    await client.post("/auth/register", json={"username": "star", "email": "s@v.com", "password": "p"})
-    star_resp = await client.post("/auth/login", data={"username": "star", "password": "p"})
-    star = star_resp.json()
-    star_id = 4 # Incremental
-    # Let's get actual ID
-    star_info_resp = await client.get("/auth/me", headers={"Authorization": f"Bearer {star['access_token']}"})
-    star_info = star_info_resp.json()
-    star_id = star_info["id"]
+    star_user, star_headers = await create_test_user(db_session, username="star", email="s@v.com")
+    star_id = star_user.id
 
     await client.post(f"/users/{star_id}/follow", headers=auth_headers)
     assert (await client.post(f"/users/{star_id}/follow", headers=auth_headers)).status_code == 400
@@ -293,10 +277,9 @@ async def test_follows_and_impls_edge_cases(client: AsyncClient, auth_headers: d
     app_resp = await client.post("/apps/", json={"prompt_text": "Official App"}, headers=auth_headers)
     app = app_resp.json()
     # Someone else implements it
-    other_headers = {"Authorization": f"Bearer {star['access_token']}"}
-    impl_resp = await client.post(f"/apps/{app['id']}/implementations", json={"url": "http://impl.com"}, headers=other_headers)
+    impl_resp = await client.post(f"/apps/{app['id']}/implementations", json={"url": "http://impl.com"}, headers=star_headers)
     impl = impl_resp.json()
     
     # Other user tries to mark it official (only app creator can)
-    resp = await client.patch(f"/implementations/{impl['id']}/official", headers=other_headers)
+    resp = await client.patch(f"/implementations/{impl['id']}/official", headers=star_headers)
     assert resp.status_code == 403

@@ -2,36 +2,35 @@ import pytest
 from httpx import AsyncClient
 from app.models import User
 from sqlalchemy import select
+from datetime import timedelta
+from app.core import security
+
 
 @pytest.mark.asyncio
-async def test_api_key_generation_on_register(client: AsyncClient, db_session):
-    # 1. Register a new user
-    user_data = {
-        "username": "test_key_user",
-        "email": "test_key@example.com",
-        "password": "testpassword123"
-    }
-    response = await client.post("/auth/register", json=user_data)
-    assert response.status_code == 200
-    data = response.json()
+async def test_api_key_authentication(client: AsyncClient, db_session):
+    """Test that API key authentication works correctly."""
+    # Create a user with an API key
+    user = User(
+        username="test_key_user",
+        email="test_key@example.com",
+        api_key="test-api-key-12345",
+        reputation_score=0.0
+    )
+    db_session.add(user)
+    await db_session.commit()
     
-    # 2. Verify API key is present
-    api_key = data.get("api_key")
-    assert api_key is not None
-    assert len(api_key) > 20 # token_urlsafe(32) should be reasonably long
-    
-    # 3. Verify the key works for authentication
-    me_response = await client.get("/auth/me", headers={"X-API-Key": api_key})
+    # Verify the key works for authentication
+    me_response = await client.get("/auth/me", headers={"X-API-Key": "test-api-key-12345"})
     assert me_response.status_code == 200
     assert me_response.json()["username"] == "test_key_user"
 
+
 @pytest.mark.asyncio
 async def test_api_key_regeneration(client: AsyncClient, db_session):
-    # 1. Create a user and login to get JWT
+    # 1. Create a user
     user = User(
         username="regene_user",
         email="regene@example.com",
-        hashed_password="hashed_password",
         api_key="initial-key",
         reputation_score=0.0
     )

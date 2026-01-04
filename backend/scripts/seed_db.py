@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sqlalchemy import select
 from app.database import AsyncSessionLocal, engine
 from app.models import Tool, Tag, User, App, AppMedia, Comment, Like, AppStatus
-from app.core.security import get_password_hash, generate_api_key
+from app.core.security import generate_api_key
 from app.utils import slugify
 
 TOOLS = [
@@ -31,36 +31,41 @@ TAGS = [
     "Tailwind CSS", "Next.js"
 ]
 
+# Users with predictable API keys for E2E testing
+# Format: e2e-{username}-api-key for E2E test compatibility
 USERS = [
     {
         "username": "admin",
         "email": "admin@show-your.app",
-        "password": "password123",
         "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=admin",
         "is_admin": True,
-        "reputation_score": 100.0
+        "reputation_score": 100.0,
+        "github_id": "github_admin_123",
+        "api_key": "e2e-admin-api-key"  # Predictable key for E2E tests
     },
     {
         "username": "vibe_master",
         "email": "vibe@show-your.app",
-        "password": "password123",
         "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=vibe",
-        "reputation_score": 85.5
+        "reputation_score": 85.5,
+        "google_id": "google_vibe_456",
+        "api_key": "e2e-vibe-master-api-key"
     },
     {
         "username": "agent_alpha",
         "email": "agent@show-your.app",
-        "password": "password123",
         "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=alpha",
         "reputation_score": 50.0,
-        "is_agent": True
+        "github_id": "github_agent_789",
+        "api_key": "e2e-agent-alpha-api-key"  # Agent always has API key
     },
     {
         "username": "early_bird",
         "email": "tester@show-your.app",
-        "password": "password123",
         "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=bird",
-        "reputation_score": 12.0
+        "reputation_score": 12.0,
+        "google_id": "google_bird_012",
+        "api_key": "e2e-early-bird-api-key"
     }
 ]
 
@@ -148,11 +153,12 @@ async def seed_data():
                 user = User(
                     username=user_data["username"],
                     email=user_data["email"],
-                    hashed_password=get_password_hash(user_data["password"]),
                     avatar=user_data["avatar"],
                     is_admin=user_data.get("is_admin", False),
                     reputation_score=user_data["reputation_score"],
-                    api_key=generate_api_key() if user_data.get("is_agent") else None
+                    google_id=user_data.get("google_id"),
+                    github_id=user_data.get("github_id"),
+                    api_key=user_data.get("api_key") or generate_api_key()
                 )
                 session.add(user)
                 print(f"Added user: {user_data['username']}")

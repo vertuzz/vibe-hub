@@ -7,7 +7,8 @@ interface AuthContextType {
     token: string | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (credentials: any) => Promise<void>;
+    loginWithGoogle: (code: string) => Promise<void>;
+    loginWithGithub: (code: string) => Promise<void>;
     logout: () => void;
     checkAuth: () => Promise<void>;
     refreshUser: () => Promise<void>;
@@ -48,8 +49,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         checkAuth();
     }, []);
 
-    const login = async (credentials: any) => {
-        const data = await authService.login(credentials);
+    const loginWithGoogle = async (code: string) => {
+        const data = await authService.googleLogin(code);
+        if (data.access_token) {
+            setToken(data.access_token);
+            const userData = await authService.getMe();
+            setUser(userData);
+        }
+    };
+
+    const loginWithGithub = async (code: string) => {
+        const data = await authService.githubLogin(code);
         if (data.access_token) {
             setToken(data.access_token);
             const userData = await authService.getMe();
@@ -75,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isAuthenticated = !!token;
 
     return (
-        <AuthContext.Provider value={{ user, token, isAuthenticated, isLoading, login, logout, checkAuth, refreshUser, setUser }}>
+        <AuthContext.Provider value={{ user, token, isAuthenticated, isLoading, loginWithGoogle, loginWithGithub, logout, checkAuth, refreshUser, setUser }}>
             {children}
         </AuthContext.Provider>
     );

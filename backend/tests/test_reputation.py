@@ -1,19 +1,13 @@
 import pytest
 from httpx import AsyncClient
+from tests.conftest import create_test_user
 
-async def get_auth_headers(client: AsyncClient, username: str):
-    email = f"{username}@example.com"
-    password = "password123"
-    await client.post("/auth/register", json={"username": username, "email": email, "password": password})
-    response = await client.post("/auth/login", data={"username": username, "password": password})
-    token = response.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
 
 @pytest.mark.asyncio
-async def test_reputation_flow(client: AsyncClient):
-    # Setup two users
-    headers_a = await get_auth_headers(client, "user_a")
-    headers_b = await get_auth_headers(client, "user_b")
+async def test_reputation_flow(client: AsyncClient, db_session):
+    # Setup two users directly in DB
+    user_a, headers_a = await create_test_user(db_session, username="user_a", email="user_a@example.com")
+    user_b, headers_b = await create_test_user(db_session, username="user_b", email="user_b@example.com")
     
     # Get user_a info
     user_a_initial = (await client.get("/users/user_a")).json()
@@ -64,9 +58,10 @@ async def test_reputation_flow(client: AsyncClient):
     user_a_final = (await client.get("/users/user_a")).json()
     assert user_a_final["reputation_score"] == 0.0
 
+
 @pytest.mark.asyncio
-async def test_self_action_reputation(client: AsyncClient):
-    headers_a = await get_auth_headers(client, "self_user")
+async def test_self_action_reputation(client: AsyncClient, db_session):
+    user_a, headers_a = await create_test_user(db_session, username="self_user", email="self_user@example.com")
     
     # User A creates an app and a comment
     app_resp = await client.post("/apps/", json={"prompt_text": "Self App"}, headers=headers_a)

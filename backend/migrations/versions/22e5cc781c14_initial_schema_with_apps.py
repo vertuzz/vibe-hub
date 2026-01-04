@@ -45,7 +45,6 @@ def upgrade() -> None:
     sa.Column('location', sa.String(length=100), nullable=True),
     sa.Column('reputation_score', sa.Float(), nullable=False),
     sa.Column('is_admin', sa.Boolean(), nullable=False),
-    sa.Column('hashed_password', sa.String(length=255), nullable=True),
     sa.Column('google_id', sa.String(length=100), nullable=True),
     sa.Column('github_id', sa.String(length=100), nullable=True),
     sa.Column('api_key', sa.String(length=255), nullable=True),

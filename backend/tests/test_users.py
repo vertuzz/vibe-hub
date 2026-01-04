@@ -1,5 +1,7 @@
 import pytest
 from httpx import AsyncClient
+from tests.conftest import create_test_user
+
 
 @pytest.mark.asyncio
 async def test_user_profile_and_links(client: AsyncClient, auth_headers: dict):
@@ -33,12 +35,12 @@ async def test_user_profile_and_links(client: AsyncClient, auth_headers: dict):
     del_resp = await client.delete(f"/users/{user_id}/links/{link_id}", headers=auth_headers)
     assert del_resp.status_code == 204
 
+
 @pytest.mark.asyncio
-async def test_user_update_unauthorized(client: AsyncClient, auth_headers: dict):
-    # Register another user
-    await client.post("/auth/register", json={"username": "victim", "email": "v@e.com", "password": "p"})
-    victim_id = 2 # likely 2 if serial
+async def test_user_update_unauthorized(client: AsyncClient, db_session, auth_headers: dict):
+    # Create another user directly in DB
+    victim, _ = await create_test_user(db_session, username="victim", email="v@e.com")
     
     # Try to update victim with our headers
-    response = await client.patch(f"/users/{victim_id}", json={"username": "hacker"}, headers=auth_headers)
+    response = await client.patch(f"/users/{victim.id}", json={"username": "hacker"}, headers=auth_headers)
     assert response.status_code == 403

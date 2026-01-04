@@ -46,7 +46,6 @@ async def test_update_app_unauthorized(client: AsyncClient, db_session, auth_hea
     other_user = User(
         username="other_user",
         email="other@example.com",
-        hashed_password="hashed_password",
         reputation_score=0.0
     )
     db_session.add(other_user)
@@ -97,7 +96,6 @@ async def test_delete_app_unauthorized(client: AsyncClient, db_session, auth_hea
     other_user = User(
         username="another_user",
         email="another@example.com",
-        hashed_password="password",
         reputation_score=0.0
     )
     db_session.add(other_user)

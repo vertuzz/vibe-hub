@@ -1,73 +1,24 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '~/contexts/AuthContext';
-import { authService } from '~/lib/services/auth-service';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
 import { Button } from '~/components/ui/button';
-import { Input } from '~/components/ui/input';
-import { Label } from '~/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Github } from 'lucide-react';
 import Header from '~/components/layout/Header';
 import { usePageTitle } from '~/lib/hooks/useSEO';
 
 export default function Login() {
-    const { login } = useAuth();
-    const [searchParams] = useSearchParams();
-    const initialTab = searchParams.get('mode') === 'signup' ? 'signup' : 'login';
-    const [activeTab, setActiveTab] = useState(initialTab);
-    const [loginData, setLoginData] = useState({ username: '', password: '' });
-    const [signupData, setSignupData] = useState({ username: '', email: '', password: '' });
     const [isLoading, setIsLoading] = useState(false);
-    const navigate = useNavigate();
 
     // SEO
-    usePageTitle(activeTab === 'signup' ? 'Sign Up' : 'Sign In');
-
-    useEffect(() => {
-        const mode = searchParams.get('mode');
-        if (mode === 'signup' || mode === 'login') {
-            setActiveTab(mode);
-        }
-    }, [searchParams]);
-
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
-        try {
-            await login(loginData);
-            navigate('/profile');
-        } catch (err: any) {
-            console.error(err);
-            alert(err.response?.data?.detail || 'Login failed');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleSignup = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
-        try {
-            await authService.signup(signupData);
-            // After signup, automatically log in using context
-            await login({ username: signupData.username, password: signupData.password });
-            navigate('/profile');
-        } catch (err: any) {
-            console.error(err);
-            alert(err.response?.data?.detail || 'Signup failed');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    usePageTitle('Sign In');
 
     const handleSocialLogin = (provider: 'google' | 'github') => {
-        // FLOW:
+        setIsLoading(true);
+        // TODO: Implement OAuth redirect flow
         // 1. Redirect user to Google/GitHub OAuth page
         // 2. User authenticates and is redirected back with a 'code'
         // 3. Frontend catches 'code' and calls authService.googleLogin(code) or githubLogin(code)
-        // For now, we just alert since we need the OAUTH_CLIENT_ID from backend env
-        alert(`Redirecting to ${provider} login... This requires setting up OAuth applications and redirecting to their auth URL.`);
+        alert(`${provider} login is coming soon! OAuth integration is not yet configured.`);
+        setIsLoading(false);
     };
 
     return (
@@ -105,111 +56,37 @@ export default function Login() {
                     <div className="absolute top-1/4 -right-12 w-64 h-64 bg-white/5 rounded-full blur-2xl" />
                 </div>
 
-                {/* Right Side: Auth Forms */}
+                {/* Right Side: Auth */}
                 <div className="flex items-center justify-center p-6 bg-background">
                     <Card className="w-full max-w-md border-none shadow-none lg:shadow-sm lg:border">
                         <CardHeader className="space-y-1">
                             <CardTitle className="text-2xl font-bold">Welcome to Show Your App</CardTitle>
                             <CardDescription>
-                                Sign in to your account or create a new one to start shipping.
+                                Sign in with your GitHub or Google account to start shipping.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                                <TabsList className="grid w-full grid-cols-2 mb-8">
-                                    <TabsTrigger value="login">Login</TabsTrigger>
-                                    <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                                </TabsList>
-
-                                <TabsContent value="login">
-                                    <form onSubmit={handleLogin} className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="username">Username</Label>
-                                            <Input
-                                                id="username"
-                                                placeholder="johndoe"
-                                                value={loginData.username}
-                                                onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <Label htmlFor="password">Password</Label>
-                                                <button type="button" className="text-xs text-primary hover:underline">
-                                                    Forgot password?
-                                                </button>
-                                            </div>
-                                            <Input
-                                                id="password"
-                                                type="password"
-                                                value={loginData.password}
-                                                onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                                                required
-                                            />
-                                        </div>
-                                        <Button type="submit" className="w-full" disabled={isLoading}>
-                                            {isLoading ? 'Logging in...' : 'Login'}
-                                        </Button>
-                                    </form>
-                                </TabsContent>
-
-                                <TabsContent value="signup">
-                                    <form onSubmit={handleSignup} className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="signup-username">Username</Label>
-                                            <Input
-                                                id="signup-username"
-                                                placeholder="johndoe"
-                                                value={signupData.username}
-                                                onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="email">Email</Label>
-                                            <Input
-                                                id="email"
-                                                type="email"
-                                                placeholder="john@example.com"
-                                                value={signupData.email}
-                                                onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="signup-password">Password</Label>
-                                            <Input
-                                                id="signup-password"
-                                                type="password"
-                                                value={signupData.password}
-                                                onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                                                required
-                                            />
-                                        </div>
-                                        <Button type="submit" className="w-full" disabled={isLoading}>
-                                            {isLoading ? 'Creating account...' : 'Create Account'}
-                                        </Button>
-                                    </form>
-                                </TabsContent>
-                            </Tabs>
-
-                            <div className="relative my-8">
-                                <div className="absolute inset-0 flex items-center">
-                                    <span className="w-full border-t" />
-                                </div>
-                                <div className="relative flex justify-center text-xs uppercase">
-                                    <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <Button variant="outline" type="button" onClick={() => handleSocialLogin('github')} disabled={isLoading}>
-                                    <Github className="mr-2 h-4 w-4" />
-                                    GitHub
+                        <CardContent className="space-y-6">
+                            <div className="grid gap-4">
+                                <Button 
+                                    variant="outline" 
+                                    size="lg" 
+                                    type="button" 
+                                    onClick={() => handleSocialLogin('github')} 
+                                    disabled={isLoading}
+                                    className="w-full"
+                                >
+                                    <Github className="mr-2 h-5 w-5" />
+                                    Continue with GitHub
                                 </Button>
-                                <Button variant="outline" type="button" onClick={() => handleSocialLogin('google')} disabled={isLoading}>
-                                    <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                                <Button 
+                                    variant="outline" 
+                                    size="lg" 
+                                    type="button" 
+                                    onClick={() => handleSocialLogin('google')} 
+                                    disabled={isLoading}
+                                    className="w-full"
+                                >
+                                    <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                                         <path
                                             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                                             fill="#4285F4"
@@ -227,9 +104,22 @@ export default function Login() {
                                             fill="#EA4335"
                                         />
                                     </svg>
-                                    Google
+                                    Continue with Google
                                 </Button>
                             </div>
+
+                            <div className="relative">
+                                <div className="absolute inset-0 flex items-center">
+                                    <span className="w-full border-t" />
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-background px-2 text-muted-foreground">Secure authentication</span>
+                                </div>
+                            </div>
+
+                            <p className="text-center text-sm text-muted-foreground">
+                                We use OAuth for secure authentication. No passwords to remember!
+                            </p>
                         </CardContent>
                         <CardFooter className="flex flex-col gap-4">
                             <p className="text-center text-sm text-muted-foreground px-8">

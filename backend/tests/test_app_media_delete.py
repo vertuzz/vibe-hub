@@ -1,8 +1,10 @@
 import pytest
 from httpx import AsyncClient
+from tests.conftest import create_test_user
+
 
 @pytest.mark.asyncio
-async def test_delete_app_media_comprehensive(client: AsyncClient, auth_headers: dict):
+async def test_delete_app_media_comprehensive(client: AsyncClient, db_session, auth_headers: dict):
     # 1. Setup: Create an app
     app_resp = await client.post(
         "/apps/", 
@@ -52,16 +54,8 @@ async def test_delete_app_media_comprehensive(client: AsyncClient, auth_headers:
     assert error_resp.status_code == 404
 
     # 7. Error: Unauthorized deletion (not the owner)
-    # Register another user
-    await client.post(
-        "/auth/register", 
-        json={"username": "other_user", "email": "other@example.com", "password": "password123"}
-    )
-    login_resp = await client.post(
-        "/auth/login", 
-        data={"username": "other_user", "password": "password123"}
-    )
-    other_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
+    # Create another user directly in DB
+    _, other_headers = await create_test_user(db_session, username="other_user", email="other@example.com")
 
     # Create new media to delete
     media_resp = await client.post(

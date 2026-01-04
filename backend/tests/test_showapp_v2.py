@@ -9,7 +9,6 @@ async def test_api_key_auth_and_app_v2_fields(client: AsyncClient, db_session):
     user = User(
         username="agent_user",
         email="agent@example.com",
-        hashed_password="hashed_password",
         api_key="secret-agent-key",
         reputation_score=0.0
     )

@@ -1,35 +1,25 @@
 import pytest
 from httpx import AsyncClient
+from tests.conftest import create_test_user
+
 
 @pytest.mark.asyncio
-async def test_follow_notification(client: AsyncClient):
-    # Register User 1
-    u1_data = {"username": "notif_u1", "email": "notif_u1@e.com", "password": "pw"}
-    await client.post("/auth/register", json=u1_data)
-    login1 = await client.post("/auth/login", data={"username": "notif_u1", "password": "pw"})
-    token1 = login1.json()["access_token"]
-    
-    # Register User 2
-    u2_data = {"username": "notif_u2", "email": "notif_u2@e.com", "password": "pw"}
-    await client.post("/auth/register", json=u2_data)
-    login2 = await client.post("/auth/login", data={"username": "notif_u2", "password": "pw"})
-    token2 = login2.json()["access_token"]
-    
-    # Get User 2 ID
-    me2 = await client.get("/auth/me", headers={"Authorization": f"Bearer {token2}"})
-    id2 = me2.json()["id"]
+async def test_follow_notification(client: AsyncClient, db_session):
+    # Create User 1 and User 2 directly in DB
+    user1, headers1 = await create_test_user(db_session, username="notif_u1", email="notif_u1@e.com")
+    user2, headers2 = await create_test_user(db_session, username="notif_u2", email="notif_u2@e.com")
 
     # User 1 follows User 2
     response = await client.post(
-        f"/users/{id2}/follow",
-        headers={"Authorization": f"Bearer {token1}"}
+        f"/users/{user2.id}/follow",
+        headers=headers1
     )
     assert response.status_code == 200
 
     # User 2 checks notifications
     response = await client.get(
         "/notifications/",
-        headers={"Authorization": f"Bearer {token2}"}
+        headers=headers2
     )
     assert response.status_code == 200
     notifications = response.json()
@@ -41,7 +31,7 @@ async def test_follow_notification(client: AsyncClient):
     notif_id = notifications[0]["id"]
     response = await client.patch(
         f"/notifications/{notif_id}/read",
-        headers={"Authorization": f"Bearer {token2}"}
+        headers=headers2
     )
     assert response.status_code == 200
     assert response.json()["is_read"] == True
