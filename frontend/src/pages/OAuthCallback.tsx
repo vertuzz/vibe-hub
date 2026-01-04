@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
@@ -13,8 +13,13 @@ export default function OAuthCallback() {
     const [searchParams] = useSearchParams();
     const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
     const [errorMessage, setErrorMessage] = useState<string>('');
+    const hasProcessed = useRef(false);
 
     useEffect(() => {
+        // Prevent processing more than once
+        if (hasProcessed.current) return;
+        hasProcessed.current = true;
+        
         const code = searchParams.get('code');
         const state = searchParams.get('state'); // 'google' or 'github'
         const error = searchParams.get('error');

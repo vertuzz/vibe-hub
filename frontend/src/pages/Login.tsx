@@ -32,6 +32,8 @@ export default function Login() {
 
     // Listen for OAuth callback messages from popup
     useEffect(() => {
+        let isProcessing = false;
+        
         const handleMessage = async (event: MessageEvent) => {
             // Only accept messages from our own origin
             if (event.origin !== window.location.origin) return;
@@ -39,10 +41,15 @@ export default function Login() {
             const { type, code, provider, error } = event.data;
             
             if (type !== 'oauth-callback') return;
+            
+            // Prevent duplicate message handling
+            if (isProcessing) return;
+            isProcessing = true;
 
             if (error) {
                 alert(`Login failed: ${error}`);
                 setIsLoading(false);
+                isProcessing = false;
                 return;
             }
 
@@ -57,7 +64,7 @@ export default function Login() {
                 } catch (err) {
                     console.error('OAuth login error:', err);
                     alert('Failed to complete login. Please try again.');
-                } finally {
+                    isProcessing = false;
                     setIsLoading(false);
                 }
             }
