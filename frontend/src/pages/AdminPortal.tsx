@@ -5,14 +5,14 @@ import { appService } from '~/lib/services/app-service';
 import { tagService } from '~/lib/services/tag-service';
 import { toolService } from '~/lib/services/tool-service';
 import { feedbackService } from '~/lib/services/feedback-service';
-import type { OwnershipClaim, TagWithCount, ToolWithCount, Feedback } from '~/lib/types';
+import type { OwnershipClaim, TagWithCount, ToolWithCount, Feedback, DeadAppReport } from '~/lib/types';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { useAuth } from '~/contexts/AuthContext';
-import { Clock, User, Box, Check, X, ArrowUpRight, MessageSquare, Tag, Wrench, Plus, Pencil, Trash2, AlertCircle, MessagesSquare } from 'lucide-react';
+import { Clock, User, Box, Check, X, ArrowUpRight, MessageSquare, Tag, Wrench, Plus, Pencil, Trash2, AlertCircle, MessagesSquare, Link2Off } from 'lucide-react';
 
 export default function AdminPortal() {
     const { user, isLoading: authLoading } = useAuth();
@@ -44,6 +44,11 @@ export default function AdminPortal() {
     const [feedbackLoading, setFeedbackLoading] = useState(true);
     const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
+    // Dead reports state
+    const [deadReports, setDeadReports] = useState<DeadAppReport[]>([]);
+    const [deadReportsLoading, setDeadReportsLoading] = useState(true);
+    const [deadReportsError, setDeadReportsError] = useState<string | null>(null);
+
     useEffect(() => {
         // Redirect if not admin
         if (!authLoading && (!user || !user.is_admin)) {
@@ -56,6 +61,7 @@ export default function AdminPortal() {
             fetchTags();
             fetchTools();
             fetchFeedback();
+            fetchDeadReports();
         }
     }, [user, authLoading, navigate]);
 
@@ -113,6 +119,20 @@ export default function AdminPortal() {
             setFeedbackError('Failed to load feedback.');
         } finally {
             setFeedbackLoading(false);
+        }
+    };
+
+    const fetchDeadReports = async () => {
+        try {
+            setDeadReportsLoading(true);
+            const data = await appService.getPendingDeadReports();
+            setDeadReports(data);
+            setDeadReportsError(null);
+        } catch (err: any) {
+            console.error('Failed to fetch dead reports:', err);
+            setDeadReportsError('Failed to load dead app reports.');
+        } finally {
+            setDeadReportsLoading(false);
         }
     };
 
@@ -222,6 +242,21 @@ export default function AdminPortal() {
         }
     };
 
+    // Dead reports handlers
+    const handleResolveDeadReport = async (reportId: number, status: 'confirmed' | 'dismissed') => {
+        try {
+            await appService.resolveDeadReport(reportId, { status });
+            // Remove all reports for the same app (they're all resolved together)
+            const resolvedReport = deadReports.find(r => r.id === reportId);
+            if (resolvedReport) {
+                setDeadReports(prev => prev.filter(r => r.app_id !== resolvedReport.app_id));
+            }
+        } catch (err: any) {
+            console.error(`Failed to ${status} dead report:`, err);
+            alert(`Failed to ${status} report. Please try again.`);
+        }
+    };
+
     if (authLoading) {
         return (
             <div className="min-h-screen bg-[var(--background)]">
@@ -282,6 +317,15 @@ export default function AdminPortal() {
                             <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                                 {feedbackList.length}
                             </Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="dead-reports" className="gap-2 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-white">
+                            <Link2Off size={16} />
+                            Dead Reports
+                            {deadReports.length > 0 && (
+                                <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">
+                                    {deadReports.length}
+                                </Badge>
+                            )}
                         </TabsTrigger>
                     </TabsList>
 
@@ -697,6 +741,108 @@ export default function AdminPortal() {
                                                 {feedback.message}
                                             </p>
                                         </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    {/* Dead Reports Tab */}
+                    <TabsContent value="dead-reports">
+                        {deadReportsError && (
+                            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-2xl flex items-center gap-3 text-red-700 dark:text-red-400 mb-6">
+                                <AlertCircle size={18} />
+                                <p className="text-sm font-semibold">{deadReportsError}</p>
+                                <button onClick={() => setDeadReportsError(null)} className="ml-auto text-red-500 hover:text-red-700">
+                                    <X size={16} />
+                                </button>
+                            </div>
+                        )}
+
+                        {deadReportsLoading ? (
+                            <div className="flex items-center justify-center h-40">
+                                <div className="size-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                            </div>
+                        ) : deadReports.length === 0 ? (
+                            <Card className="border-dashed border-2 py-12 text-center bg-white/50 dark:bg-white/5">
+                                <CardContent className="flex flex-col items-center gap-4">
+                                    <div className="size-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400">
+                                        <Check size={32} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">No dead link reports</h3>
+                                        <p className="text-slate-500 dark:text-slate-400 mt-1">All apps are working correctly!</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <div className="grid gap-6">
+                                {deadReports.map((report) => (
+                                    <Card key={report.id} className="overflow-hidden border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-[var(--card)]">
+                                        <CardHeader className="pb-4">
+                                            <div className="flex flex-wrap items-start justify-between gap-4">
+                                                <div className="space-y-1">
+                                                    <CardTitle className="text-xl font-bold text-slate-900 dark:text-white hover:text-primary transition-colors cursor-pointer flex items-center gap-2" onClick={() => navigate(`/apps/${report.app?.slug}`)}>
+                                                        {report.app?.title || 'Unknown App'}
+                                                        <ArrowUpRight size={16} className="text-slate-400" />
+                                                    </CardTitle>
+                                                    <CardDescription className="flex items-center gap-4 flex-wrap text-sm font-medium">
+                                                        <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                                                            <User size={14} className="text-slate-400" />
+                                                            <span>Reported by</span>
+                                                            <span className="text-primary font-bold hover:underline cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(`/users/${report.reporter?.username}`); }}>
+                                                                @{report.reporter?.username || 'unknown'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 text-slate-500">
+                                                            <Clock size={14} className="text-slate-400" />
+                                                            {new Date(report.created_at).toLocaleDateString('en-US', {
+                                                                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                                            })}
+                                                        </div>
+                                                    </CardDescription>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {(report.report_count || 1) > 1 && (
+                                                        <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 border-none px-3 py-1 font-bold">
+                                                            {report.report_count} REPORTS
+                                                        </Badge>
+                                                    )}
+                                                    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 border-none px-3 py-1 font-bold">
+                                                        {report.status.toUpperCase()}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="pb-6">
+                                            {report.reason ? (
+                                                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex gap-3">
+                                                    <MessageSquare size={18} className="text-amber-500/60 shrink-0 mt-0.5" />
+                                                    <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed italic">
+                                                        "{report.reason}"
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <p className="text-slate-500 text-sm italic">No reason provided</p>
+                                            )}
+                                        </CardContent>
+                                        <CardFooter className="bg-slate-50/50 dark:bg-slate-900/20 border-t border-slate-100 dark:border-slate-800 px-6 py-4 flex justify-end gap-3">
+                                            <Button
+                                                variant="outline"
+                                                className="h-10 px-5 gap-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-green-50 hover:text-green-600 hover:border-green-200 transition-all font-bold"
+                                                onClick={() => handleResolveDeadReport(report.id, 'dismissed')}
+                                            >
+                                                <Check size={18} />
+                                                App Works
+                                            </Button>
+                                            <Button
+                                                className="h-10 px-5 gap-2 bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20 transition-all font-bold"
+                                                onClick={() => handleResolveDeadReport(report.id, 'confirmed')}
+                                            >
+                                                <Link2Off size={18} />
+                                                Confirm Dead
+                                            </Button>
+                                        </CardFooter>
                                     </Card>
                                 ))}
                             </div>

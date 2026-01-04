@@ -154,6 +154,9 @@ class App(Base):
     # Lineage
     parent_app_id: Mapped[Optional[int]] = mapped_column(ForeignKey("apps.id"), nullable=True, index=True)
     
+    # Dead app tracking
+    is_dead: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    
     status: Mapped[AppStatus] = mapped_column(Enum(AppStatus), default=AppStatus.CONCEPT, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
@@ -188,6 +191,11 @@ class ClaimStatus(str, enum.Enum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
+
+class ReportStatus(str, enum.Enum):
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    DISMISSED = "dismissed"
 
 class OwnershipClaim(Base):
     __tablename__ = "ownership_claims"
@@ -297,3 +305,18 @@ class Feedback(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     user: Mapped["User"] = relationship("User")
+
+
+class DeadAppReport(Base):
+    __tablename__ = "dead_app_reports"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    app_id: Mapped[int] = mapped_column(ForeignKey("apps.id"), index=True)
+    reporter_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[ReportStatus] = mapped_column(Enum(ReportStatus), default=ReportStatus.PENDING, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    app: Mapped["App"] = relationship("App")
+    reporter: Mapped["User"] = relationship("User")

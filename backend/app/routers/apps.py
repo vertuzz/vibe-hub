@@ -3,11 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, func, distinct
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
+from datetime import datetime
 
 from app.database import get_db
-from app.models import App, User, Tool, Tag, AppMedia, AppStatus, Like, Comment, Review
+from app.models import App, User, Tool, Tag, AppMedia, AppStatus, Like, Comment, Review, DeadAppReport, ReportStatus
 from app.schemas import schemas
-from app.routers.auth import get_current_user, get_current_user_optional
+from app.routers.auth import get_current_user, get_current_user_optional, require_admin
 from app.utils import slugify, generate_unique_slug
 
 router = APIRouter()
@@ -44,6 +45,7 @@ def app_to_schema(
         "youtube_url": app.youtube_url,
         "is_agent_submitted": app.is_agent_submitted,
         "is_owner": app.is_owner,
+        "is_dead": app.is_dead,
         "creator_id": app.creator_id,
         "parent_app_id": app.parent_app_id,
         "created_at": app.created_at,
@@ -69,6 +71,7 @@ async def get_apps(
     status: Optional[AppStatus] = None,
     creator_id: Optional[int] = None,
     liked_by_user_id: Optional[int] = None,
+    include_dead: bool = Query(False, description="Include dead apps in results"),
     sort_by: str = Query("trending", enum=["trending", "newest", "top_rated", "likes"]),
     current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db)
@@ -80,6 +83,10 @@ async def get_apps(
         selectinload(App.media),
         selectinload(App.creator)
     )
+    
+    # Filter out dead apps by default
+    if not include_dead:
+        query = query.filter(App.is_dead == False)
     
     # 1. Joins for filtering and sorting
     if tool_id or tool:
@@ -468,3 +475,138 @@ async def delete_app_media(
     await db.delete(db_media)
     await db.commit()
     return None
+
+
+# Dead App Report Endpoints
+@router.post("/{app_id}/report-dead", response_model=schemas.DeadAppReport, status_code=status.HTTP_201_CREATED)
+async def report_dead_app(
+    app_id: int,
+    report_in: schemas.DeadAppReportCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Report an app as dead/broken. Multiple users can report the same app."""
+    # Check if app exists
+    result = await db.execute(select(App).filter(App.id == app_id))
+    db_app = result.scalars().first()
+    if not db_app:
+        raise HTTPException(status_code=404, detail="App not found")
+    
+    # Check if user already has a pending report for this app
+    existing_result = await db.execute(
+        select(DeadAppReport).filter(
+            DeadAppReport.app_id == app_id,
+            DeadAppReport.reporter_id == current_user.id,
+            DeadAppReport.status == ReportStatus.PENDING
+        )
+    )
+    if existing_result.scalars().first():
+        raise HTTPException(
+            status_code=400, 
+            detail="You already have a pending report for this app"
+        )
+    
+    db_report = DeadAppReport(
+        app_id=app_id,
+        reporter_id=current_user.id,
+        reason=report_in.reason,
+        status=ReportStatus.PENDING
+    )
+    db.add(db_report)
+    await db.commit()
+    await db.refresh(db_report)
+    return db_report
+
+
+@router.get("/dead-reports/pending", response_model=List[schemas.DeadAppReportWithDetails])
+async def get_pending_dead_reports(
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all pending dead app reports (admin only). Groups by app with report count."""
+    # Get all pending reports with app and reporter details
+    result = await db.execute(
+        select(DeadAppReport)
+        .options(selectinload(DeadAppReport.app), selectinload(DeadAppReport.reporter))
+        .filter(DeadAppReport.status == ReportStatus.PENDING)
+        .order_by(desc(DeadAppReport.created_at))
+    )
+    reports = result.scalars().all()
+    
+    # Count reports per app
+    app_report_counts = {}
+    for report in reports:
+        app_report_counts[report.app_id] = app_report_counts.get(report.app_id, 0) + 1
+    
+    # Convert to response with report counts (return one report per app with count)
+    seen_apps = set()
+    response = []
+    for report in reports:
+        if report.app_id not in seen_apps:
+            seen_apps.add(report.app_id)
+            response.append({
+                "id": report.id,
+                "app_id": report.app_id,
+                "reporter_id": report.reporter_id,
+                "reason": report.reason,
+                "status": report.status,
+                "created_at": report.created_at,
+                "resolved_at": report.resolved_at,
+                "reporter": report.reporter,
+                "app": report.app,
+                "report_count": app_report_counts[report.app_id]
+            })
+    
+    return response
+
+
+@router.put("/dead-reports/{report_id}/resolve", response_model=schemas.DeadAppReport)
+async def resolve_dead_report(
+    report_id: int,
+    resolve_in: schemas.DeadAppReportResolve,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Resolve a dead app report (admin only). If confirmed, marks the app as dead."""
+    if resolve_in.status not in [ReportStatus.CONFIRMED, ReportStatus.DISMISSED]:
+        raise HTTPException(
+            status_code=400, 
+            detail="Status must be 'confirmed' or 'dismissed'"
+        )
+    
+    # Get the report
+    result = await db.execute(
+        select(DeadAppReport)
+        .options(selectinload(DeadAppReport.app))
+        .filter(DeadAppReport.id == report_id)
+    )
+    db_report = result.scalars().first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    if db_report.status != ReportStatus.PENDING:
+        raise HTTPException(status_code=400, detail="Report already resolved")
+    
+    # Update all pending reports for this app
+    all_reports_result = await db.execute(
+        select(DeadAppReport).filter(
+            DeadAppReport.app_id == db_report.app_id,
+            DeadAppReport.status == ReportStatus.PENDING
+        )
+    )
+    all_reports = all_reports_result.scalars().all()
+    
+    for report in all_reports:
+        report.status = resolve_in.status
+        report.resolved_at = datetime.now()
+    
+    # If confirmed, mark the app as dead
+    if resolve_in.status == ReportStatus.CONFIRMED:
+        app_result = await db.execute(select(App).filter(App.id == db_report.app_id))
+        db_app = app_result.scalars().first()
+        if db_app:
+            db_app.is_dead = True
+    
+    await db.commit()
+    await db.refresh(db_report)
+    return db_report

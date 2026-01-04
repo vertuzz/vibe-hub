@@ -1,5 +1,5 @@
 import api from '../api';
-import type { App, AppCreate, Comment, CommentCreate, Tag, Tool, OwnershipClaim } from '../types';
+import type { App, AppCreate, Comment, CommentCreate, Tag, Tool, OwnershipClaim, DeadAppReport, DeadAppReportCreate, DeadAppReportResolve } from '../types';
 
 export interface AppQueryParams {
     skip?: number;
@@ -12,6 +12,7 @@ export interface AppQueryParams {
     status?: 'Concept' | 'WIP' | 'Live';
     creator_id?: number;
     liked_by_user_id?: number;
+    include_dead?: boolean;
     sort_by?: 'trending' | 'newest' | 'top_rated' | 'likes';
 }
 
@@ -149,6 +150,22 @@ export const appService = {
 
     resolveClaim: async (claimId: number, status: 'approved' | 'rejected'): Promise<OwnershipClaim> => {
         const response = await api.put(`/ownership-claims/${claimId}/resolve`, null, { params: { status } });
+        return response.data;
+    },
+
+    // Dead App Report endpoints
+    reportDeadApp: async (appId: number, data?: DeadAppReportCreate): Promise<DeadAppReport> => {
+        const response = await api.post(`/apps/${appId}/report-dead`, data || {});
+        return response.data;
+    },
+
+    getPendingDeadReports: async (): Promise<DeadAppReport[]> => {
+        const response = await api.get('/apps/dead-reports/pending');
+        return response.data;
+    },
+
+    resolveDeadReport: async (reportId: number, data: DeadAppReportResolve): Promise<DeadAppReport> => {
+        const response = await api.put(`/apps/dead-reports/${reportId}/resolve`, data);
         return response.data;
     },
 };

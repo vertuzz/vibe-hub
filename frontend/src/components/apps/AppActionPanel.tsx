@@ -12,6 +12,7 @@ interface AppActionPanelProps {
     onShare: () => void;
     onDelete: () => void;
     onClaim: () => void;
+    onReportDead: () => void;
 }
 
 const statusConfig = {
@@ -45,7 +46,8 @@ export default function AppActionPanel({
     onLike,
     onShare,
     onDelete,
-    onClaim
+    onClaim,
+    onReportDead
 }: AppActionPanelProps) {
     const { user, isAuthenticated } = useAuth();
     const isOwner = user?.id === app.creator_id;
@@ -96,14 +98,22 @@ export default function AppActionPanel({
             <div className="bg-white dark:bg-[var(--card)] rounded-2xl p-6 shadow-lg border border-[var(--border)] flex flex-col gap-6">
                 {/* Status */}
                 <div className="flex items-center justify-between">
-                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${status.bg} border ${status.border}`}>
-                        <span className="relative flex h-2.5 w-2.5">
-                            {app.status === 'Live' && (
-                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${status.dot} opacity-75`} />
-                            )}
-                            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${status.dot}`} />
-                        </span>
-                        <span className={`text-xs font-bold ${status.text} uppercase tracking-wide`}>{status.label}</span>
+                    <div className="flex items-center gap-2">
+                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${status.bg} border ${status.border}`}>
+                            <span className="relative flex h-2.5 w-2.5">
+                                {app.status === 'Live' && !app.is_dead && (
+                                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${status.dot} opacity-75`} />
+                                )}
+                                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${status.dot}`} />
+                            </span>
+                            <span className={`text-xs font-bold ${status.text} uppercase tracking-wide`}>{status.label}</span>
+                        </div>
+                        {app.is_dead && (
+                            <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
+                                <span className="material-symbols-outlined text-red-500 text-[14px]">link_off</span>
+                                <span className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">Dead</span>
+                            </div>
+                        )}
                     </div>
 
                     {isOwner && (
@@ -153,6 +163,17 @@ export default function AppActionPanel({
                     >
                         <span className="material-symbols-outlined text-[20px]">verified_user</span>
                         <span>Claim Ownership</span>
+                    </button>
+                )}
+
+                {/* Report Dead Link */}
+                {app.app_url && isAuthenticated && !app.is_dead && (
+                    <button
+                        onClick={onReportDead}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-amber-300/50 dark:border-amber-700/50 text-amber-600 dark:text-amber-400 font-medium text-sm hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">flag</span>
+                        <span>Report Dead Link</span>
                     </button>
                 )}
 

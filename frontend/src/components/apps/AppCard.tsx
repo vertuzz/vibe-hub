@@ -16,7 +16,16 @@ const aspectRatioClasses = {
 };
 
 // Status badge component
-function StatusBadge({ status }: { status: App['status'] }) {
+function StatusBadge({ status, isDead }: { status: App['status']; isDead?: boolean }) {
+  if (isDead) {
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200 shadow-sm backdrop-blur-md">
+        <span className="material-symbols-outlined text-[12px] mr-1">link_off</span>
+        DEAD
+      </span>
+    );
+  }
+
   if (status === 'Live') {
     return (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200 shadow-sm backdrop-blur-md">
@@ -72,7 +81,7 @@ export default function AppCard({ app, aspectRatio = 'landscape', onLike }: AppC
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
             <div className="absolute top-3 right-3">
-              <StatusBadge status={app.status} />
+              <StatusBadge status={app.status} isDead={app.is_dead} />
             </div>
           </div>
 

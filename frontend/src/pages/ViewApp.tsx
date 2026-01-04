@@ -10,6 +10,7 @@ import {
     AppPromptSection,
     AppTools,
     ClaimOwnershipModal,
+    ReportDeadModal,
 } from '~/components/apps';
 import { Breadcrumbs } from '~/components/common/Breadcrumbs';
 import DeleteConfirmModal from '~/components/common/DeleteConfirmModal';
@@ -103,6 +104,7 @@ export default function ViewApp() {
     // Deletion state
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
+    const [isReportDeadModalOpen, setIsReportDeadModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
     // SEO - Dynamic app page with social sharing meta tags
@@ -295,6 +297,7 @@ export default function ViewApp() {
                             onShare={handleShare}
                             onDelete={() => setIsDeleteModalOpen(true)}
                             onClaim={() => setIsClaimModalOpen(true)}
+                            onReportDead={() => setIsReportDeadModalOpen(true)}
                         />
                     </div>
                 </div>
@@ -314,6 +317,17 @@ export default function ViewApp() {
                 appTitle={app.title}
                 onSuccess={() => {
                     alert('Ownership claim submitted successfully!');
+                    fetchApp();
+                }}
+            />
+
+            <ReportDeadModal
+                isOpen={isReportDeadModalOpen}
+                onClose={() => setIsReportDeadModalOpen(false)}
+                appId={app.id}
+                appTitle={app.title}
+                onSuccess={() => {
+                    alert('Dead link report submitted! An admin will review it shortly.');
                     fetchApp();
                 }}
             />

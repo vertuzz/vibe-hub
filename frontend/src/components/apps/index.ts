@@ -6,4 +6,5 @@ export { default as AppComments } from './AppComments';
 export { default as AppPromptSection } from './AppPromptSection';
 export { default as AppTools } from './AppTools';
 export { default as ClaimOwnershipModal } from './ClaimOwnershipModal';
+export { default as ReportDeadModal } from './ReportDeadModal';
 export { default as MediaFullscreenModal } from './MediaFullscreenModal';

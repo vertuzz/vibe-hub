@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, EmailStr, HttpUrl
-from app.models import AppStatus, NotificationType, FeedbackType
+from app.models import AppStatus, NotificationType, FeedbackType, ClaimStatus, ReportStatus
 
 # User Schemas
 class UserBase(BaseModel):
@@ -130,6 +130,7 @@ class App(AppBase):
     comments_count: int = 0
     is_liked: bool = False
     is_owner: bool
+    is_dead: bool = False
     model_config = ConfigDict(from_attributes=True)
 
 # Implementation
@@ -303,3 +304,26 @@ class Feedback(BaseModel):
 
 class FeedbackWithUser(Feedback):
     user: Optional[FeedbackUser] = None
+
+
+# Dead App Report Schemas
+class DeadAppReportCreate(BaseModel):
+    reason: Optional[str] = None
+
+class DeadAppReport(BaseModel):
+    id: int
+    app_id: int
+    reporter_id: int
+    reason: Optional[str] = None
+    status: ReportStatus
+    created_at: datetime
+    resolved_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class DeadAppReportWithDetails(DeadAppReport):
+    reporter: Optional[AppCreator] = None
+    app: Optional[AppPublic] = None
+    report_count: int = 1  # Number of reports for this app
+
+class DeadAppReportResolve(BaseModel):
+    status: ReportStatus  # Must be CONFIRMED or DISMISSED

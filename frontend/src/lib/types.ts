@@ -48,6 +48,7 @@ export interface App {
     youtube_url?: string;
     is_agent_submitted: boolean;
     is_owner: boolean;
+    is_dead: boolean;
     creator_id: number;
     creator?: AppCreator;
     created_at: string;
@@ -162,4 +163,28 @@ export interface Feedback {
 export interface FeedbackCreate {
     type: FeedbackType;
     message: string;
+}
+
+// Dead App Report types
+export type ReportStatus = 'pending' | 'confirmed' | 'dismissed';
+
+export interface DeadAppReport {
+    id: number;
+    app_id: number;
+    reporter_id: number;
+    reason?: string;
+    status: ReportStatus;
+    created_at: string;
+    resolved_at?: string;
+    reporter?: AppCreator;
+    app?: App;
+    report_count?: number;
+}
+
+export interface DeadAppReportCreate {
+    reason?: string;
+}
+
+export interface DeadAppReportResolve {
+    status: 'confirmed' | 'dismissed';
 }
