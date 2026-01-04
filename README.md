@@ -102,6 +102,8 @@ cp .env.production.example .env.production
 ./redeploy.sh -b           # Backend only
 ./redeploy.sh -f           # Frontend only
 ./redeploy.sh -q           # Quick restart (no rebuild)
+./redeploy.sh -c           # Rebuild without Docker cache (env/config changes)
+./redeploy.sh -f -c        # Frontend only, no cache
 ```
 
 ### Server Commands

@@ -15,7 +15,7 @@ RUN npm install -g pnpm && pnpm install
 COPY . .
 
 # Build argument for API URL (baked into the build)
-ARG VITE_API_URL=https://show-your.app
+ARG VITE_API_URL=https://show-your.app/api
 ARG VITE_GOOGLE_CLIENT_ID
 ARG VITE_GITHUB_CLIENT_ID
 
