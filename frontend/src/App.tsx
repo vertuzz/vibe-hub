@@ -4,6 +4,7 @@ import CreateApp from "./pages/CreateApp";
 import EditApp from "./pages/EditApp";
 import ViewApp from "./pages/ViewApp";
 import Login from "./pages/Login";
+import OAuthCallback from "./pages/OAuthCallback";
 import Profile from "./pages/Profile";
 import UserPage from "./pages/UserPage";
 import AdminPortal from "./pages/AdminPortal";
@@ -17,6 +18,7 @@ function App() {
       <Route path="/apps/:slug" element={<ViewApp />} />
       <Route path="/apps/:slug/edit" element={<EditApp />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/auth/callback" element={<OAuthCallback />} />
       <Route path="/signup" element={<Navigate to="/login?mode=signup" replace />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/users/:username" element={<UserPage />} />

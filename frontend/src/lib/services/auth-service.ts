@@ -8,7 +8,8 @@ export const authService = {
     },
 
     googleLogin: async (code: string) => {
-        const response = await api.post('/auth/google', { code });
+        const redirectUri = `${window.location.origin}/auth/callback`;
+        const response = await api.post('/auth/google', { code, redirect_uri: redirectUri });
         if (response.data.access_token) {
             localStorage.setItem('token', response.data.access_token);
         }

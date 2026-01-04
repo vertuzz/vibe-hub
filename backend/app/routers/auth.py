@@ -115,6 +115,8 @@ async def google_login(request: schemas.SocialLoginRequest, db: AsyncSession = D
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
     
     # Exchange code for token
+    # Use provided redirect_uri or fall back to "postmessage" for legacy support
+    redirect_uri = request.redirect_uri or "postmessage"
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "https://oauth2.googleapis.com/token",
@@ -123,7 +125,7 @@ async def google_login(request: schemas.SocialLoginRequest, db: AsyncSession = D
                 "client_id": settings.GOOGLE_CLIENT_ID,
                 "client_secret": settings.GOOGLE_CLIENT_SECRET,
                 "grant_type": "authorization_code",
-                "redirect_uri": "postmessage", # Common for SPAs
+                "redirect_uri": redirect_uri,
             },
         )
         if response.status_code != 200:

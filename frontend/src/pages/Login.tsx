@@ -1,24 +1,129 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/components/ui/card';
 import { Github } from 'lucide-react';
 import Header from '~/components/layout/Header';
 import { usePageTitle } from '~/lib/hooks/useSEO';
+import { useAuth } from '~/contexts/AuthContext';
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID;
+
+// OAuth popup dimensions
+const POPUP_WIDTH = 500;
+const POPUP_HEIGHT = 600;
 
 export default function Login() {
     const [isLoading, setIsLoading] = useState(false);
+    const { loginWithGoogle, loginWithGithub, isAuthenticated } = useAuth();
+    const navigate = useNavigate();
+    const popupRef = useRef<Window | null>(null);
 
     // SEO
     usePageTitle('Sign In');
 
+    // Redirect if already authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate('/');
+        }
+    }, [isAuthenticated, navigate]);
+
+    // Listen for OAuth callback messages from popup
+    useEffect(() => {
+        const handleMessage = async (event: MessageEvent) => {
+            // Only accept messages from our own origin
+            if (event.origin !== window.location.origin) return;
+            
+            const { type, code, provider, error } = event.data;
+            
+            if (type !== 'oauth-callback') return;
+
+            if (error) {
+                alert(`Login failed: ${error}`);
+                setIsLoading(false);
+                return;
+            }
+
+            if (code && provider) {
+                try {
+                    if (provider === 'google') {
+                        await loginWithGoogle(code);
+                    } else if (provider === 'github') {
+                        await loginWithGithub(code);
+                    }
+                    navigate('/');
+                } catch (err) {
+                    console.error('OAuth login error:', err);
+                    alert('Failed to complete login. Please try again.');
+                } finally {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, [loginWithGoogle, loginWithGithub, navigate]);
+
+    const openOAuthPopup = (url: string, provider: string) => {
+        // Calculate popup position (centered)
+        const left = window.screenX + (window.outerWidth - POPUP_WIDTH) / 2;
+        const top = window.screenY + (window.outerHeight - POPUP_HEIGHT) / 2;
+
+        // Close existing popup if open
+        if (popupRef.current && !popupRef.current.closed) {
+            popupRef.current.close();
+        }
+
+        // Open popup
+        popupRef.current = window.open(
+            url,
+            `${provider}-oauth`,
+            `width=${POPUP_WIDTH},height=${POPUP_HEIGHT},left=${left},top=${top},popup=yes`
+        );
+
+        // Check if popup was blocked
+        if (!popupRef.current) {
+            alert('Popup was blocked. Please allow popups for this site.');
+            setIsLoading(false);
+            return;
+        }
+
+        // Poll to detect if popup was closed without completing auth
+        const pollTimer = setInterval(() => {
+            if (popupRef.current?.closed) {
+                clearInterval(pollTimer);
+                setIsLoading(false);
+            }
+        }, 500);
+    };
+
     const handleSocialLogin = (provider: 'google' | 'github') => {
         setIsLoading(true);
-        // TODO: Implement OAuth redirect flow
-        // 1. Redirect user to Google/GitHub OAuth page
-        // 2. User authenticates and is redirected back with a 'code'
-        // 3. Frontend catches 'code' and calls authService.googleLogin(code) or githubLogin(code)
-        alert(`${provider} login is coming soon! OAuth integration is not yet configured.`);
-        setIsLoading(false);
+
+        if (provider === 'google') {
+            if (!GOOGLE_CLIENT_ID) {
+                alert('Google OAuth is not configured. Please set VITE_GOOGLE_CLIENT_ID.');
+                setIsLoading(false);
+                return;
+            }
+            const redirectUri = `${window.location.origin}/auth/callback`;
+            const scope = 'email profile';
+            const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&state=google`;
+            openOAuthPopup(googleAuthUrl, 'google');
+        } else if (provider === 'github') {
+            if (!GITHUB_CLIENT_ID) {
+                alert('GitHub OAuth is not configured. Please set VITE_GITHUB_CLIENT_ID.');
+                setIsLoading(false);
+                return;
+            }
+            const redirectUri = `${window.location.origin}/auth/callback`;
+            const scope = 'user:email';
+            const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&state=github`;
+            openOAuthPopup(githubAuthUrl, 'github');
+        }
     };
 
     return (

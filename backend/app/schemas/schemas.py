@@ -239,6 +239,7 @@ class TokenData(BaseModel):
 
 class SocialLoginRequest(BaseModel):
     code: str
+    redirect_uri: Optional[str] = None  # Required for redirect flow
 
 # Media
 class MediaResponse(BaseModel):
