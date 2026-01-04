@@ -30,23 +30,23 @@ async def test_reputation_flow(client: AsyncClient):
     assert user_a_after_unfollow["reputation_score"] == 0.0
     
     # 3. Test Like Reputation (+2)
-    # User A creates a dream
-    dream_resp = await client.post("/dreams/", json={"prompt_text": "Reputation Dream"}, headers=headers_a)
-    dream_id = dream_resp.json()["id"]
+    # User A creates an app
+    app_resp = await client.post("/apps/", json={"prompt_text": "Reputation App"}, headers=headers_a)
+    app_id = app_resp.json()["id"]
     
     # User B likes it
-    await client.post(f"/dreams/{dream_id}/like", headers=headers_b)
+    await client.post(f"/apps/{app_id}/like", headers=headers_b)
     user_a_after_like = (await client.get("/users/user_a")).json()
     assert user_a_after_like["reputation_score"] == 2.0
     
     # User B unlikes it
-    await client.delete(f"/dreams/{dream_id}/like", headers=headers_b)
+    await client.delete(f"/apps/{app_id}/like", headers=headers_b)
     user_a_after_unlike = (await client.get("/users/user_a")).json()
     assert user_a_after_unlike["reputation_score"] == 0.0
     
     # 4. Test Comment Reputation (+1 per upvote)
-    # User A comments on their dream
-    comment_resp = await client.post(f"/dreams/{dream_id}/comments", json={"content": "Reputation Comment"}, headers=headers_a)
+    # User A comments on their app
+    comment_resp = await client.post(f"/apps/{app_id}/comments", json={"content": "Reputation Comment"}, headers=headers_a)
     comment_id = comment_resp.json()["id"]
     
     # User B upvotes it
@@ -68,16 +68,16 @@ async def test_reputation_flow(client: AsyncClient):
 async def test_self_action_reputation(client: AsyncClient):
     headers_a = await get_auth_headers(client, "self_user")
     
-    # User A creates a dream and a comment
-    dream_resp = await client.post("/dreams/", json={"prompt_text": "Self Dream"}, headers=headers_a)
-    dream_id = dream_resp.json()["id"]
+    # User A creates an app and a comment
+    app_resp = await client.post("/apps/", json={"prompt_text": "Self App"}, headers=headers_a)
+    app_id = app_resp.json()["id"]
     
-    comment_resp = await client.post(f"/dreams/{dream_id}/comments", json={"content": "Self Comment"}, headers=headers_a)
+    comment_resp = await client.post(f"/apps/{app_id}/comments", json={"content": "Self Comment"}, headers=headers_a)
     comment_id = comment_resp.json()["id"]
     
     # Self like (should not work if API prevents it, but let's check reputation if it happens)
     # The API doesn't seem to explicitly forbid self-liking in likes.py, but it should not update reputation
-    await client.post(f"/dreams/{dream_id}/like", headers=headers_a)
+    await client.post(f"/apps/{app_id}/like", headers=headers_a)
     user_after_self_like = (await client.get("/users/self_user")).json()
     assert user_after_self_like["reputation_score"] == 0.0
     

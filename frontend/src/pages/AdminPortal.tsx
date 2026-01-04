@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '~/components/layout/Header';
-import { dreamService } from '~/lib/services/dream-service';
+import { appService } from '~/lib/services/app-service';
 import { tagService } from '~/lib/services/tag-service';
 import { toolService } from '~/lib/services/tool-service';
 import { feedbackService } from '~/lib/services/feedback-service';
@@ -63,7 +63,7 @@ export default function AdminPortal() {
     const fetchClaims = async () => {
         try {
             setClaimsLoading(true);
-            const data = await dreamService.getPendingClaims();
+            const data = await appService.getPendingClaims();
             setClaims(data);
             setClaimsError(null);
         } catch (err: any) {
@@ -119,7 +119,7 @@ export default function AdminPortal() {
     // Claims handlers
     const handleResolveClaim = async (claimId: number, status: 'approved' | 'rejected') => {
         try {
-            await dreamService.resolveClaim(claimId, status);
+            await appService.resolveClaim(claimId, status);
             setClaims(prev => prev.filter(c => c.id !== claimId));
         } catch (err: any) {
             console.error(`Failed to ${status} claim:`, err);
@@ -157,7 +157,7 @@ export default function AdminPortal() {
     };
 
     const handleDeleteTag = async (id: number, name: string) => {
-        if (!confirm(`Are you sure you want to delete the tag "${name}"? This will remove it from all dreams.`)) return;
+        if (!confirm(`Are you sure you want to delete the tag "${name}"? This will remove it from all apps.`)) return;
 
         try {
             await tagService.deleteTag(id);
@@ -198,7 +198,7 @@ export default function AdminPortal() {
     };
 
     const handleDeleteTool = async (id: number, name: string) => {
-        if (!confirm(`Are you sure you want to delete the tool "${name}"? This will remove it from all dreams.`)) return;
+        if (!confirm(`Are you sure you want to delete the tool "${name}"? This will remove it from all apps.`)) return;
 
         try {
             await toolService.deleteTool(id);
@@ -317,8 +317,8 @@ export default function AdminPortal() {
                                         <CardHeader className="pb-4">
                                             <div className="flex flex-wrap items-start justify-between gap-4">
                                                 <div className="space-y-1">
-                                                    <CardTitle className="text-xl font-bold text-slate-900 dark:text-white hover:text-primary transition-colors cursor-pointer flex items-center gap-2" onClick={() => navigate(`/dreams/${claim.dream?.slug}`)}>
-                                                        {claim.dream?.title || 'Unknown Dream'}
+                                                    <CardTitle className="text-xl font-bold text-slate-900 dark:text-white hover:text-primary transition-colors cursor-pointer flex items-center gap-2" onClick={() => navigate(`/apps/${claim.app?.slug}`)}>
+                                                        {claim.app?.title || 'Unknown App'}
                                                         <ArrowUpRight size={16} className="text-slate-400" />
                                                     </CardTitle>
                                                     <CardDescription className="flex items-center gap-4 flex-wrap text-sm font-medium">
@@ -462,7 +462,7 @@ export default function AdminPortal() {
                                                         <Tag size={16} className="text-slate-400" />
                                                         <span className="font-medium text-slate-900 dark:text-white">{tag.name}</span>
                                                         <Badge variant="secondary" className="text-xs">
-                                                            {tag.dream_count} {tag.dream_count === 1 ? 'dream' : 'dreams'}
+                                                            {tag.app_count} {tag.app_count === 1 ? 'app' : 'apps'}
                                                         </Badge>
                                                     </div>
                                                     <div className="flex items-center gap-2">
@@ -582,7 +582,7 @@ export default function AdminPortal() {
                                                         <Wrench size={16} className="text-slate-400" />
                                                         <span className="font-medium text-slate-900 dark:text-white">{tool.name}</span>
                                                         <Badge variant="secondary" className="text-xs">
-                                                            {tool.dream_count} {tool.dream_count === 1 ? 'dream' : 'dreams'}
+                                                            {tool.app_count} {tool.app_count === 1 ? 'app' : 'apps'}
                                                         </Badge>
                                                     </div>
                                                     <div className="flex items-center gap-2">

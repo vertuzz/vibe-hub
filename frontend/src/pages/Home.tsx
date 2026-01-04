@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { dreamService, type DreamQueryParams } from '~/lib/services/dream-service';
-import type { Dream, Tag, Tool } from '~/lib/types';
-import DreamCard from '~/components/dreams/DreamCard';
-import DreamCardSkeleton from '~/components/dreams/DreamCardSkeleton';
-import FilterBar from '~/components/dreams/FilterBar';
+import { appService, type AppQueryParams } from '~/lib/services/app-service';
+import type { App, Tag, Tool } from '~/lib/types';
+import AppCard from '~/components/apps/AppCard';
+import AppCardSkeleton from '~/components/apps/AppCardSkeleton';
+import FilterBar from '~/components/apps/FilterBar';
 import Header from '~/components/layout/Header';
-import { useDreamCache } from '~/contexts/DreamCacheContext';
+import { useAppCache } from '~/contexts/AppCacheContext';
 import { useSEO } from '~/lib/hooks/useSEO';
 
 type SortOption = 'trending' | 'newest' | 'top_rated' | 'likes';
@@ -37,7 +37,7 @@ function parseParams(value: string | null): string[] {
 
 export default function Home() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const { saveCache, loadCache } = useDreamCache();
+    const { saveCache, loadCache } = useAppCache();
 
     // SEO - Home page uses default site title
     useSEO({ url: '/' });
@@ -45,18 +45,18 @@ export default function Home() {
     // Initialize state from URL params
     const getInitialTagIds = () => parseParams(searchParams.get('tag_id')).map(Number).filter(n => !isNaN(n));
     const getInitialToolIds = () => parseParams(searchParams.get('tool_id')).map(Number).filter(n => !isNaN(n));
-    const getInitialStatuses = () => parseParams(searchParams.get('status')) as Dream['status'][];
+    const getInitialStatuses = () => parseParams(searchParams.get('status')) as App['status'][];
     const getInitialSort = (): SortOption => (searchParams.get('sort_by') as SortOption) || 'trending';
     const getInitialSearch = () => searchParams.get('search') || '';
 
-    const [dreams, setDreams] = useState<Dream[]>([]);
+    const [apps, setApps] = useState<App[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [tags, setTags] = useState<Tag[]>([]);
     const [tools, setTools] = useState<Tool[]>([]);
     const [selectedTagIds, setSelectedTagIds] = useState<number[]>(getInitialTagIds);
     const [selectedToolIds, setSelectedToolIds] = useState<number[]>(getInitialToolIds);
-    const [selectedStatuses, setSelectedStatuses] = useState<Dream['status'][]>(getInitialStatuses);
+    const [selectedStatuses, setSelectedStatuses] = useState<App['status'][]>(getInitialStatuses);
     const [sortBy, setSortBy] = useState<SortOption>(getInitialSort);
     const [searchQuery, setSearchQuery] = useState(getInitialSearch);
     const [page, setPage] = useState(1);
@@ -72,7 +72,7 @@ export default function Home() {
     const didInitialFetch = useRef(false);
 
     const observer = useRef<IntersectionObserver | null>(null);
-    const lastDreamElementRef = useCallback(
+    const lastAppElementRef = useCallback(
         (node: HTMLDivElement | null) => {
             if (loading || loadingMore) return;
             if (observer.current) observer.current.disconnect();
@@ -107,7 +107,7 @@ export default function Home() {
         setSearchParams(newParams, { replace: true });
     }, [selectedTagIds, selectedToolIds, selectedStatuses, sortBy, searchQuery, setSearchParams]);
 
-    const fetchDreams = useCallback(async (isInitial: boolean = false) => {
+    const fetchApps = useCallback(async (isInitial: boolean = false) => {
         if (isInitial) {
             setLoading(true);
         } else {
@@ -115,7 +115,7 @@ export default function Home() {
         }
 
         try {
-            const params: DreamQueryParams = {
+            const params: AppQueryParams = {
                 skip: ((isInitial ? 1 : page) - 1) * itemsPerPage,
                 limit: itemsPerPage,
                 sort_by: sortBy,
@@ -135,27 +135,27 @@ export default function Home() {
             }
             if (selectedStatuses.length > 0) {
                 // Backend usually takes single status or we might need to handle multi-status if supported
-                // For now backend schemas.py line 68 shows status: Optional[DreamStatus]
+                // For now backend schemas.py line 68 shows status: Optional[AppStatus]
                 // Let's check how backend handles it. 
-                // Currently backend only supports single status filter in get_dreams.
+                // Currently backend only supports single status filter in get_apps.
                 // We'll just take the first one or pass as list if backend updated.
-                // Looking at dreams.py:115: if status: query = query.filter(Dream.status == status)
+                // Looking at apps.py:115: if status: query = query.filter(App.status == status)
                 // It only supports one. Let's send the first one or we can update backend.
                 // For now, let's keep it consistent with what backend supports.
                 params.status = selectedStatuses[0];
             }
 
-            const data = await dreamService.getDreams(params);
+            const data = await appService.getApps(params);
 
             if (isInitial) {
-                setDreams(data);
+                setApps(data);
             } else {
-                setDreams((prev) => [...prev, ...data]);
+                setApps((prev) => [...prev, ...data]);
             }
 
             setHasMore(data.length === itemsPerPage);
         } catch (err) {
-            console.error('Failed to fetch dreams:', err);
+            console.error('Failed to fetch apps:', err);
         } finally {
             setLoading(false);
             setLoadingMore(false);
@@ -167,8 +167,8 @@ export default function Home() {
         const loadInitialData = async () => {
             try {
                 const [tagsData, toolsData] = await Promise.all([
-                    dreamService.getTags(),
-                    dreamService.getTools()
+                    appService.getTags(),
+                    appService.getTools()
                 ]);
                 setTags(tagsData);
                 setTools(toolsData);
@@ -188,14 +188,14 @@ export default function Home() {
         const cached = loadCache(paramsKey);
 
         if (cached) {
-            setDreams(cached.dreams);
+            setApps(cached.apps);
             setPage(cached.page);
             setHasMore(cached.hasMore);
             pendingScrollRestore.current = cached.scrollPosition;
             setLoading(false);
             setCacheRestored(true);
         } else {
-            fetchDreams(true);
+            fetchApps(true);
         }
 
         // Mark as mounted after initial fetch is done
@@ -203,14 +203,14 @@ export default function Home() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Restore scroll position after dreams render from cache
+    // Restore scroll position after apps render from cache
     useLayoutEffect(() => {
-        if (cacheRestored && pendingScrollRestore.current !== null && dreams.length > 0) {
+        if (cacheRestored && pendingScrollRestore.current !== null && apps.length > 0) {
             window.scrollTo(0, pendingScrollRestore.current);
             pendingScrollRestore.current = null;
             setCacheRestored(false);
         }
-    }, [cacheRestored, dreams]);
+    }, [cacheRestored, apps]);
 
     // Filter/sort changes - only trigger AFTER mount (not on initial render)
     useEffect(() => {
@@ -219,14 +219,14 @@ export default function Home() {
 
         setPage(1);
         setHasMore(true);
-        fetchDreams(true);
+        fetchApps(true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sortBy, selectedTagIds, selectedToolIds, selectedStatuses]);
 
     // Fetch more when page changes (infinite scroll)
     useEffect(() => {
         if (page > 1) {
-            fetchDreams(false);
+            fetchApps(false);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page]);
@@ -243,7 +243,7 @@ export default function Home() {
         const timer = setTimeout(() => {
             setPage(1);
             setHasMore(true);
-            fetchDreams(true);
+            fetchApps(true);
         }, 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -254,7 +254,7 @@ export default function Home() {
         return () => {
             const paramsKey = createParamsKey(new URLSearchParams(window.location.search));
             saveCache({
-                dreams,
+                apps,
                 page,
                 hasMore,
                 scrollPosition: window.scrollY,
@@ -262,9 +262,9 @@ export default function Home() {
             });
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dreams, page, hasMore, saveCache]);
+    }, [apps, page, hasMore, saveCache]);
 
-    const handleFilterChange = (selected: { tagIds: number[]; toolIds: number[]; statuses: Dream['status'][] }) => {
+    const handleFilterChange = (selected: { tagIds: number[]; toolIds: number[]; statuses: App['status'][] }) => {
         setCacheRestored(false); // Reset flag so filters work
         setSelectedTagIds(selected.tagIds);
         setSelectedToolIds(selected.toolIds);
@@ -289,37 +289,37 @@ export default function Home() {
         likes: 'Most Liked',
     };
 
-    const handleLike = async (dream: Dream) => {
+    const handleLike = async (app: App) => {
         // Optimistic update
-        setDreams(prev => prev.map(d => {
-            if (d.id === dream.id) {
+        setApps(prev => prev.map(a => {
+            if (a.id === app.id) {
                 return {
-                    ...d,
-                    is_liked: !d.is_liked,
-                    likes_count: (d.likes_count || 0) + (d.is_liked ? -1 : 1)
+                    ...a,
+                    is_liked: !a.is_liked,
+                    likes_count: (a.likes_count || 0) + (a.is_liked ? -1 : 1)
                 };
             }
-            return d;
+            return a;
         }));
 
         try {
-            if (dream.is_liked) {
-                await dreamService.unlikeDream(dream.id);
+            if (app.is_liked) {
+                await appService.unlikeApp(app.id);
             } else {
-                await dreamService.likeDream(dream.id);
+                await appService.likeApp(app.id);
             }
         } catch (err) {
             console.error('Failed to toggle like:', err);
             // Revert on failure
-            setDreams(prev => prev.map(d => {
-                if (d.id === dream.id) {
+            setApps(prev => prev.map(a => {
+                if (a.id === app.id) {
                     return {
-                        ...d,
-                        is_liked: dream.is_liked,
-                        likes_count: dream.likes_count
+                        ...a,
+                        is_liked: app.is_liked,
+                        likes_count: app.likes_count
                     };
                 }
-                return d;
+                return a;
             }));
         }
     };
@@ -340,7 +340,7 @@ export default function Home() {
                         </span>
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400 text-lg">
-                        Browse thousands of community-generated agents, UI components, and full-stack dreams.
+                        Browse thousands of community-generated agents, UI components, and full-stack apps.
                     </p>
                 </div>
 
@@ -440,31 +440,31 @@ export default function Home() {
                 </div>
 
                 {/* Empty State */}
-                {!loading && dreams.length === 0 && (
+                {!loading && apps.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
                         <span className="material-symbols-outlined text-6xl text-gray-300 mb-4">
                             lightbulb
                         </span>
                         <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                            No dreams found
+                            No apps found
                         </h3>
                         <p className="text-gray-500 dark:text-gray-400 max-w-md">
                             {searchQuery
                                 ? `No results for "${searchQuery}". Try a different search term.`
-                                : 'Be the first to submit a dream and share your AI creation with the community!'}
+                                : 'Be the first to submit an app and share your AI creation with the community!'}
                         </p>
                     </div>
                 )}
 
                 {/* Masonry Grid */}
-                {dreams.length > 0 && (
+                {apps.length > 0 && (
                     <div className="masonry-grid pb-12">
-                        {dreams.map((dream, index) => {
-                            if (dreams.length === index + 1) {
+                        {apps.map((app, index) => {
+                            if (apps.length === index + 1) {
                                 return (
-                                    <div ref={lastDreamElementRef} key={dream.id}>
-                                        <DreamCard
-                                            dream={dream}
+                                    <div ref={lastAppElementRef} key={app.id}>
+                                        <AppCard
+                                            app={app}
                                             aspectRatio={aspectRatios[index % aspectRatios.length]}
                                             onLike={handleLike}
                                         />
@@ -472,9 +472,9 @@ export default function Home() {
                                 );
                             } else {
                                 return (
-                                    <DreamCard
-                                        key={dream.id}
-                                        dream={dream}
+                                    <AppCard
+                                        key={app.id}
+                                        app={app}
                                         aspectRatio={aspectRatios[index % aspectRatios.length]}
                                         onLike={handleLike}
                                     />
@@ -488,13 +488,13 @@ export default function Home() {
                 {(loading || loadingMore) && (
                     <div className="masonry-grid pb-12">
                         {Array.from({ length: loading ? 8 : 4 }).map((_, index) => (
-                            <DreamCardSkeleton key={index} />
+                            <AppCardSkeleton key={index} />
                         ))}
                     </div>
                 )}
 
                 {/* End of List Message */}
-                {!loading && !loadingMore && !hasMore && dreams.length > 0 && (
+                {!loading && !loadingMore && !hasMore && apps.length > 0 && (
                     <div className="flex items-center justify-center py-10">
                         <p className="text-gray-400 text-sm font-medium">You've reached the end of the universe ✨</p>
                     </div>

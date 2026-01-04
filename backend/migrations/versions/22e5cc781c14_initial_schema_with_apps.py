@@ -1,8 +1,8 @@
-"""Initial schema with slugs
+"""Initial schema with apps
 
-Revision ID: 8f5f7b26c393
+Revision ID: 22e5cc781c14
 Revises: 
-Create Date: 2025-12-31 13:06:22.311782
+Create Date: 2026-01-04 11:35:11.378102
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '8f5f7b26c393'
+revision: str = '22e5cc781c14'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -40,7 +40,11 @@ def upgrade() -> None:
     sa.Column('username', sa.String(length=50), nullable=False),
     sa.Column('email', sa.String(length=100), nullable=False),
     sa.Column('avatar', sa.String(length=255), nullable=True),
+    sa.Column('full_name', sa.String(length=100), nullable=True),
+    sa.Column('bio', sa.Text(), nullable=True),
+    sa.Column('location', sa.String(length=100), nullable=True),
     sa.Column('reputation_score', sa.Float(), nullable=False),
+    sa.Column('is_admin', sa.Boolean(), nullable=False),
     sa.Column('hashed_password', sa.String(length=255), nullable=True),
     sa.Column('google_id', sa.String(length=100), nullable=True),
     sa.Column('github_id', sa.String(length=100), nullable=True),
@@ -52,8 +56,35 @@ def upgrade() -> None:
     op.create_index(op.f('ix_users_github_id'), 'users', ['github_id'], unique=True)
     op.create_index(op.f('ix_users_google_id'), 'users', ['google_id'], unique=True)
     op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
+    op.create_index(op.f('ix_users_is_admin'), 'users', ['is_admin'], unique=False)
     op.create_index(op.f('ix_users_reputation_score'), 'users', ['reputation_score'], unique=False)
     op.create_index(op.f('ix_users_username'), 'users', ['username'], unique=True)
+    op.create_table('apps',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('creator_id', sa.Integer(), nullable=False),
+    sa.Column('title', sa.String(length=255), nullable=True),
+    sa.Column('prompt_text', sa.Text(), nullable=True),
+    sa.Column('prd_text', sa.Text(), nullable=True),
+    sa.Column('extra_specs', sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), 'postgresql'), nullable=True),
+    sa.Column('app_url', sa.String(length=512), nullable=True),
+    sa.Column('youtube_url', sa.String(length=512), nullable=True),
+    sa.Column('is_agent_submitted', sa.Boolean(), nullable=False),
+    sa.Column('slug', sa.String(length=255), nullable=False),
+    sa.Column('is_owner', sa.Boolean(), nullable=False),
+    sa.Column('parent_app_id', sa.Integer(), nullable=True),
+    sa.Column('status', sa.Enum('CONCEPT', 'WIP', 'LIVE', name='appstatus'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['creator_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['parent_app_id'], ['apps.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_apps_created_at'), 'apps', ['created_at'], unique=False)
+    op.create_index(op.f('ix_apps_creator_id'), 'apps', ['creator_id'], unique=False)
+    op.create_index(op.f('ix_apps_id'), 'apps', ['id'], unique=False)
+    op.create_index(op.f('ix_apps_is_owner'), 'apps', ['is_owner'], unique=False)
+    op.create_index(op.f('ix_apps_parent_app_id'), 'apps', ['parent_app_id'], unique=False)
+    op.create_index(op.f('ix_apps_slug'), 'apps', ['slug'], unique=True)
+    op.create_index(op.f('ix_apps_status'), 'apps', ['status'], unique=False)
     op.create_table('collections',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=False),
@@ -68,30 +99,18 @@ def upgrade() -> None:
     op.create_index(op.f('ix_collections_id'), 'collections', ['id'], unique=False)
     op.create_index(op.f('ix_collections_is_public'), 'collections', ['is_public'], unique=False)
     op.create_index(op.f('ix_collections_owner_id'), 'collections', ['owner_id'], unique=False)
-    op.create_table('dreams',
+    op.create_table('feedback',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('creator_id', sa.Integer(), nullable=False),
-    sa.Column('title', sa.String(length=255), nullable=True),
-    sa.Column('prompt_text', sa.Text(), nullable=True),
-    sa.Column('prd_text', sa.Text(), nullable=True),
-    sa.Column('extra_specs', sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), 'postgresql'), nullable=True),
-    sa.Column('app_url', sa.String(length=512), nullable=True),
-    sa.Column('youtube_url', sa.String(length=512), nullable=True),
-    sa.Column('is_agent_submitted', sa.Boolean(), nullable=False),
-    sa.Column('slug', sa.String(length=255), nullable=False),
-    sa.Column('parent_dream_id', sa.Integer(), nullable=True),
-    sa.Column('status', sa.Enum('CONCEPT', 'WIP', 'LIVE', name='dreamstatus'), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('type', sa.Enum('BUG', 'FEATURE', 'OTHER', name='feedbacktype'), nullable=False),
+    sa.Column('message', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['creator_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['parent_dream_id'], ['dreams.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_dreams_created_at'), 'dreams', ['created_at'], unique=False)
-    op.create_index(op.f('ix_dreams_creator_id'), 'dreams', ['creator_id'], unique=False)
-    op.create_index(op.f('ix_dreams_id'), 'dreams', ['id'], unique=False)
-    op.create_index(op.f('ix_dreams_parent_dream_id'), 'dreams', ['parent_dream_id'], unique=False)
-    op.create_index(op.f('ix_dreams_slug'), 'dreams', ['slug'], unique=True)
-    op.create_index(op.f('ix_dreams_status'), 'dreams', ['status'], unique=False)
+    op.create_index(op.f('ix_feedback_created_at'), 'feedback', ['created_at'], unique=False)
+    op.create_index(op.f('ix_feedback_id'), 'feedback', ['id'], unique=False)
+    op.create_index(op.f('ix_feedback_user_id'), 'feedback', ['user_id'], unique=False)
     op.create_table('follows',
     sa.Column('follower_id', sa.Integer(), nullable=False),
     sa.Column('followed_id', sa.Integer(), nullable=False),
@@ -104,7 +123,7 @@ def upgrade() -> None:
     op.create_table('notifications',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('type', sa.Enum('LIKE', 'COMMENT', 'FORK', 'IMPLEMENTATION', name='notificationtype'), nullable=False),
+    sa.Column('type', sa.Enum('LIKE', 'COMMENT', 'FORK', 'IMPLEMENTATION', 'FOLLOW', 'OWNERSHIP_CLAIM', name='notificationtype'), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
     sa.Column('link', sa.String(length=255), nullable=True),
     sa.Column('is_read', sa.Boolean(), nullable=False),
@@ -126,97 +145,112 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_user_links_id'), 'user_links', ['id'], unique=False)
     op.create_index(op.f('ix_user_links_user_id'), 'user_links', ['user_id'], unique=False)
-    op.create_table('collection_dreams',
+    op.create_table('app_media',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('app_id', sa.Integer(), nullable=False),
+    sa.Column('media_url', sa.String(length=512), nullable=False),
+    sa.ForeignKeyConstraint(['app_id'], ['apps.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_app_media_app_id'), 'app_media', ['app_id'], unique=False)
+    op.create_index(op.f('ix_app_media_id'), 'app_media', ['id'], unique=False)
+    op.create_table('app_tags',
+    sa.Column('app_id', sa.Integer(), nullable=False),
+    sa.Column('tag_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['app_id'], ['apps.id'], ),
+    sa.ForeignKeyConstraint(['tag_id'], ['tags.id'], ),
+    sa.PrimaryKeyConstraint('app_id', 'tag_id')
+    )
+    op.create_table('app_tools',
+    sa.Column('app_id', sa.Integer(), nullable=False),
+    sa.Column('tool_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['app_id'], ['apps.id'], ),
+    sa.ForeignKeyConstraint(['tool_id'], ['tools.id'], ),
+    sa.PrimaryKeyConstraint('app_id', 'tool_id')
+    )
+    op.create_table('collection_apps',
     sa.Column('collection_id', sa.Integer(), nullable=False),
-    sa.Column('dream_id', sa.Integer(), nullable=False),
+    sa.Column('app_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['app_id'], ['apps.id'], ),
     sa.ForeignKeyConstraint(['collection_id'], ['collections.id'], ),
-    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
-    sa.PrimaryKeyConstraint('collection_id', 'dream_id')
+    sa.PrimaryKeyConstraint('collection_id', 'app_id')
     )
     op.create_table('comments',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('dream_id', sa.Integer(), nullable=False),
+    sa.Column('app_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('score', sa.Integer(), nullable=False),
     sa.Column('parent_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
+    sa.ForeignKeyConstraint(['app_id'], ['apps.id'], ),
     sa.ForeignKeyConstraint(['parent_id'], ['comments.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_index(op.f('ix_comments_app_id'), 'comments', ['app_id'], unique=False)
     op.create_index(op.f('ix_comments_created_at'), 'comments', ['created_at'], unique=False)
-    op.create_index(op.f('ix_comments_dream_id'), 'comments', ['dream_id'], unique=False)
     op.create_index(op.f('ix_comments_id'), 'comments', ['id'], unique=False)
     op.create_index(op.f('ix_comments_parent_id'), 'comments', ['parent_id'], unique=False)
     op.create_index(op.f('ix_comments_user_id'), 'comments', ['user_id'], unique=False)
-    op.create_table('dream_media',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('dream_id', sa.Integer(), nullable=False),
-    sa.Column('media_url', sa.String(length=512), nullable=False),
-    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_dream_media_dream_id'), 'dream_media', ['dream_id'], unique=False)
-    op.create_index(op.f('ix_dream_media_id'), 'dream_media', ['id'], unique=False)
-    op.create_table('dream_tags',
-    sa.Column('dream_id', sa.Integer(), nullable=False),
-    sa.Column('tag_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
-    sa.ForeignKeyConstraint(['tag_id'], ['tags.id'], ),
-    sa.PrimaryKeyConstraint('dream_id', 'tag_id')
-    )
-    op.create_table('dream_tools',
-    sa.Column('dream_id', sa.Integer(), nullable=False),
-    sa.Column('tool_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
-    sa.ForeignKeyConstraint(['tool_id'], ['tools.id'], ),
-    sa.PrimaryKeyConstraint('dream_id', 'tool_id')
-    )
     op.create_table('implementations',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('dream_id', sa.Integer(), nullable=False),
+    sa.Column('app_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('url', sa.String(length=512), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('is_official', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
+    sa.ForeignKeyConstraint(['app_id'], ['apps.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_index(op.f('ix_implementations_app_id'), 'implementations', ['app_id'], unique=False)
     op.create_index(op.f('ix_implementations_created_at'), 'implementations', ['created_at'], unique=False)
-    op.create_index(op.f('ix_implementations_dream_id'), 'implementations', ['dream_id'], unique=False)
     op.create_index(op.f('ix_implementations_id'), 'implementations', ['id'], unique=False)
     op.create_index(op.f('ix_implementations_user_id'), 'implementations', ['user_id'], unique=False)
     op.create_table('likes',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('dream_id', sa.Integer(), nullable=False),
+    sa.Column('app_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
+    sa.ForeignKeyConstraint(['app_id'], ['apps.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('dream_id', 'user_id', name='uq_dream_like')
+    sa.UniqueConstraint('app_id', 'user_id', name='uq_app_like')
     )
+    op.create_index(op.f('ix_likes_app_id'), 'likes', ['app_id'], unique=False)
     op.create_index(op.f('ix_likes_created_at'), 'likes', ['created_at'], unique=False)
-    op.create_index(op.f('ix_likes_dream_id'), 'likes', ['dream_id'], unique=False)
     op.create_index(op.f('ix_likes_id'), 'likes', ['id'], unique=False)
     op.create_index(op.f('ix_likes_user_id'), 'likes', ['user_id'], unique=False)
+    op.create_table('ownership_claims',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('app_id', sa.Integer(), nullable=False),
+    sa.Column('claimant_id', sa.Integer(), nullable=False),
+    sa.Column('message', sa.Text(), nullable=True),
+    sa.Column('status', sa.Enum('PENDING', 'APPROVED', 'REJECTED', name='claimstatus'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('resolved_at', sa.DateTime(timezone=True), nullable=True),
+    sa.ForeignKeyConstraint(['app_id'], ['apps.id'], ),
+    sa.ForeignKeyConstraint(['claimant_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_ownership_claims_app_id'), 'ownership_claims', ['app_id'], unique=False)
+    op.create_index(op.f('ix_ownership_claims_claimant_id'), 'ownership_claims', ['claimant_id'], unique=False)
+    op.create_index(op.f('ix_ownership_claims_id'), 'ownership_claims', ['id'], unique=False)
     op.create_table('reviews',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('dream_id', sa.Integer(), nullable=False),
+    sa.Column('app_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('score', sa.Float(), nullable=False),
     sa.Column('comment', sa.Text(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['dream_id'], ['dreams.id'], ),
+    sa.ForeignKeyConstraint(['app_id'], ['apps.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_index(op.f('ix_reviews_app_id'), 'reviews', ['app_id'], unique=False)
     op.create_index(op.f('ix_reviews_created_at'), 'reviews', ['created_at'], unique=False)
-    op.create_index(op.f('ix_reviews_dream_id'), 'reviews', ['dream_id'], unique=False)
     op.create_index(op.f('ix_reviews_id'), 'reviews', ['id'], unique=False)
     op.create_index(op.f('ix_reviews_user_id'), 'reviews', ['user_id'], unique=False)
     op.create_table('comment_votes',
@@ -247,31 +281,35 @@ def downgrade() -> None:
     op.drop_table('comment_votes')
     op.drop_index(op.f('ix_reviews_user_id'), table_name='reviews')
     op.drop_index(op.f('ix_reviews_id'), table_name='reviews')
-    op.drop_index(op.f('ix_reviews_dream_id'), table_name='reviews')
     op.drop_index(op.f('ix_reviews_created_at'), table_name='reviews')
+    op.drop_index(op.f('ix_reviews_app_id'), table_name='reviews')
     op.drop_table('reviews')
+    op.drop_index(op.f('ix_ownership_claims_id'), table_name='ownership_claims')
+    op.drop_index(op.f('ix_ownership_claims_claimant_id'), table_name='ownership_claims')
+    op.drop_index(op.f('ix_ownership_claims_app_id'), table_name='ownership_claims')
+    op.drop_table('ownership_claims')
     op.drop_index(op.f('ix_likes_user_id'), table_name='likes')
     op.drop_index(op.f('ix_likes_id'), table_name='likes')
-    op.drop_index(op.f('ix_likes_dream_id'), table_name='likes')
     op.drop_index(op.f('ix_likes_created_at'), table_name='likes')
+    op.drop_index(op.f('ix_likes_app_id'), table_name='likes')
     op.drop_table('likes')
     op.drop_index(op.f('ix_implementations_user_id'), table_name='implementations')
     op.drop_index(op.f('ix_implementations_id'), table_name='implementations')
-    op.drop_index(op.f('ix_implementations_dream_id'), table_name='implementations')
     op.drop_index(op.f('ix_implementations_created_at'), table_name='implementations')
+    op.drop_index(op.f('ix_implementations_app_id'), table_name='implementations')
     op.drop_table('implementations')
-    op.drop_table('dream_tools')
-    op.drop_table('dream_tags')
-    op.drop_index(op.f('ix_dream_media_id'), table_name='dream_media')
-    op.drop_index(op.f('ix_dream_media_dream_id'), table_name='dream_media')
-    op.drop_table('dream_media')
     op.drop_index(op.f('ix_comments_user_id'), table_name='comments')
     op.drop_index(op.f('ix_comments_parent_id'), table_name='comments')
     op.drop_index(op.f('ix_comments_id'), table_name='comments')
-    op.drop_index(op.f('ix_comments_dream_id'), table_name='comments')
     op.drop_index(op.f('ix_comments_created_at'), table_name='comments')
+    op.drop_index(op.f('ix_comments_app_id'), table_name='comments')
     op.drop_table('comments')
-    op.drop_table('collection_dreams')
+    op.drop_table('collection_apps')
+    op.drop_table('app_tools')
+    op.drop_table('app_tags')
+    op.drop_index(op.f('ix_app_media_id'), table_name='app_media')
+    op.drop_index(op.f('ix_app_media_app_id'), table_name='app_media')
+    op.drop_table('app_media')
     op.drop_index(op.f('ix_user_links_user_id'), table_name='user_links')
     op.drop_index(op.f('ix_user_links_id'), table_name='user_links')
     op.drop_table('user_links')
@@ -282,20 +320,26 @@ def downgrade() -> None:
     op.drop_table('notifications')
     op.drop_index(op.f('ix_follows_created_at'), table_name='follows')
     op.drop_table('follows')
-    op.drop_index(op.f('ix_dreams_status'), table_name='dreams')
-    op.drop_index(op.f('ix_dreams_slug'), table_name='dreams')
-    op.drop_index(op.f('ix_dreams_parent_dream_id'), table_name='dreams')
-    op.drop_index(op.f('ix_dreams_id'), table_name='dreams')
-    op.drop_index(op.f('ix_dreams_creator_id'), table_name='dreams')
-    op.drop_index(op.f('ix_dreams_created_at'), table_name='dreams')
-    op.drop_table('dreams')
+    op.drop_index(op.f('ix_feedback_user_id'), table_name='feedback')
+    op.drop_index(op.f('ix_feedback_id'), table_name='feedback')
+    op.drop_index(op.f('ix_feedback_created_at'), table_name='feedback')
+    op.drop_table('feedback')
     op.drop_index(op.f('ix_collections_owner_id'), table_name='collections')
     op.drop_index(op.f('ix_collections_is_public'), table_name='collections')
     op.drop_index(op.f('ix_collections_id'), table_name='collections')
     op.drop_index(op.f('ix_collections_created_at'), table_name='collections')
     op.drop_table('collections')
+    op.drop_index(op.f('ix_apps_status'), table_name='apps')
+    op.drop_index(op.f('ix_apps_slug'), table_name='apps')
+    op.drop_index(op.f('ix_apps_parent_app_id'), table_name='apps')
+    op.drop_index(op.f('ix_apps_is_owner'), table_name='apps')
+    op.drop_index(op.f('ix_apps_id'), table_name='apps')
+    op.drop_index(op.f('ix_apps_creator_id'), table_name='apps')
+    op.drop_index(op.f('ix_apps_created_at'), table_name='apps')
+    op.drop_table('apps')
     op.drop_index(op.f('ix_users_username'), table_name='users')
     op.drop_index(op.f('ix_users_reputation_score'), table_name='users')
+    op.drop_index(op.f('ix_users_is_admin'), table_name='users')
     op.drop_index(op.f('ix_users_id'), table_name='users')
     op.drop_index(op.f('ix_users_google_id'), table_name='users')
     op.drop_index(op.f('ix_users_github_id'), table_name='users')

@@ -31,16 +31,16 @@ async def test_admin_can_create_tools(client: AsyncClient, admin_headers: dict):
 
 @pytest.mark.asyncio
 async def test_admin_can_view_all_pending_claims(client: AsyncClient, admin_headers: dict, auth_headers: dict):
-    # 1. Create a dream and a claim
-    dream_resp = await client.post("/dreams/", json={
+    # 1. Create an app and a claim
+    app_resp = await client.post("/apps/", json={
         "title": "Claim App",
         "prompt_text": "Test claim",
         "is_owner": False
     }, headers=auth_headers)
-    dream_id = dream_resp.json()["id"]
+    app_id = app_resp.json()["id"]
     
     await client.post(
-        f"/dreams/{dream_id}/claim-ownership",
+        f"/apps/{app_id}/claim-ownership",
         json={"message": "I claim this"},
         headers=auth_headers # reusing auth_headers for simplicity
     )
@@ -54,20 +54,20 @@ async def test_admin_can_view_all_pending_claims(client: AsyncClient, admin_head
     assert admin_resp.status_code == 200
     claims = admin_resp.json()
     assert len(claims) >= 1
-    assert any(c["dream_id"] == dream_id for c in claims)
+    assert any(c["app_id"] == app_id for c in claims)
 
 @pytest.mark.asyncio
 async def test_admin_can_resolve_any_claim(client: AsyncClient, admin_headers: dict, auth_headers: dict):
     # 1. Setup claim
-    dream_resp = await client.post("/dreams/", json={
+    app_resp = await client.post("/apps/", json={
         "title": "Resolve App",
         "prompt_text": "Test resolve",
         "is_owner": False
     }, headers=auth_headers)
-    dream_id = dream_resp.json()["id"]
+    app_id = app_resp.json()["id"]
     
     claim_resp = await client.post(
-        f"/dreams/{dream_id}/claim-ownership",
+        f"/apps/{app_id}/claim-ownership",
         json={"message": "I claim this"},
         headers=auth_headers
     )

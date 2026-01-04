@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from typing import List
 
 from app.database import get_db
-from app.models import Tool, User, dream_tools
+from app.models import Tool, User, app_tools
 from app.schemas import schemas
 from app.routers.auth import require_admin
 
@@ -18,13 +18,13 @@ async def get_tools(db: AsyncSession = Depends(get_db)):
 
 @router.get("/with-counts", response_model=List[schemas.ToolWithCount])
 async def get_tools_with_counts(db: AsyncSession = Depends(get_db)):
-    """Get all tools with their dream usage counts (for admin)."""
+    """Get all tools with their app usage counts (for admin)."""
     result = await db.execute(
         select(
             Tool,
-            func.count(dream_tools.c.dream_id).label("dream_count")
+            func.count(app_tools.c.app_id).label("app_count")
         )
-        .outerjoin(dream_tools, Tool.id == dream_tools.c.tool_id)
+        .outerjoin(app_tools, Tool.id == app_tools.c.tool_id)
         .group_by(Tool.id)
         .order_by(Tool.name)
     )
@@ -35,7 +35,7 @@ async def get_tools_with_counts(db: AsyncSession = Depends(get_db)):
         tools_with_counts.append(schemas.ToolWithCount(
             id=tool.id,
             name=tool.name,
-            dream_count=count
+            app_count=count
         ))
     return tools_with_counts
 
@@ -95,7 +95,7 @@ async def delete_tool(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
-    """Delete a tool (admin only). Removes associations with dreams."""
+    """Delete a tool (admin only). Removes associations with apps."""
     result = await db.execute(select(Tool).where(Tool.id == tool_id))
     tool = result.scalar_one_or_none()
     if not tool:

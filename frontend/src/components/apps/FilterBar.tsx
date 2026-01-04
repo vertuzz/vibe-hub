@@ -1,4 +1,4 @@
-import type { Tag, Tool, Dream } from '~/lib/types';
+import type { Tag, Tool, App } from '~/lib/types';
 import MultiSelect from '~/components/common/MultiSelect';
 
 interface FilterBarProps {
@@ -6,8 +6,8 @@ interface FilterBarProps {
     tools: Tool[];
     selectedTagIds: number[];
     selectedToolIds: number[];
-    selectedStatuses: Dream['status'][];
-    onChange: (selected: { tagIds: number[]; toolIds: number[]; statuses: Dream['status'][] }) => void;
+    selectedStatuses: App['status'][];
+    onChange: (selected: { tagIds: number[]; toolIds: number[]; statuses: App['status'][] }) => void;
 }
 
 const statusOptions: { id: string; name: string }[] = [
@@ -38,7 +38,7 @@ export default function FilterBar({
         onChange({
             tagIds: selectedTagIds,
             toolIds: selectedToolIds,
-            statuses: newStatusIds as Dream['status'][]
+            statuses: newStatusIds as App['status'][]
         });
     };
 

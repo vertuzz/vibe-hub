@@ -1,11 +1,11 @@
-import type { Dream } from '~/lib/types';
+import type { App } from '~/lib/types';
 
 interface StatusSelectorProps {
-    status: Dream['status'];
-    setStatus: (status: Dream['status']) => void;
+    status: App['status'];
+    setStatus: (status: App['status']) => void;
 }
 
-const statusOptions: { value: Dream['status']; label: string; icon: string; description: string; color: string }[] = [
+const statusOptions: { value: App['status']; label: string; icon: string; description: string; color: string }[] = [
     {
         value: 'Concept',
         label: 'Concept',

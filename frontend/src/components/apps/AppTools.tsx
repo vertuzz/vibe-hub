@@ -1,10 +1,10 @@
 import type { Tool } from '~/lib/types';
 
-interface DreamToolsProps {
+interface AppToolsProps {
     tools: Tool[];
 }
 
-export default function DreamTools({ tools }: DreamToolsProps) {
+export default function AppTools({ tools }: AppToolsProps) {
     if (!tools.length) return null;
 
     return (

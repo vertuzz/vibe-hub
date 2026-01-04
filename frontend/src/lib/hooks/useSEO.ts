@@ -8,10 +8,10 @@ interface SEOOptions {
     type?: 'website' | 'article';
 }
 
-const DEFAULT_TITLE = 'Dreamware - Discover & Share AI-Powered Apps';
-const DEFAULT_DESCRIPTION = 'Dreamware is the launchpad for AI-generated software. Discover innovative AI apps, share your vibe-coded creations, and find your first users.';
-const DEFAULT_IMAGE = 'https://dreamware.dev/og-image.png';
-const SITE_URL = 'https://dreamware.dev';
+const DEFAULT_TITLE = 'Show Your App - Discover & Share AI-Powered Apps';
+const DEFAULT_DESCRIPTION = 'Show Your App is the launchpad for AI-generated software. Discover innovative AI apps, share your vibe-coded creations, and find your first users.';
+const DEFAULT_IMAGE = 'https://show-your.app/og-image.png';
+const SITE_URL = 'https://show-your.app';
 
 /**
  * Custom hook for updating document title and meta tags dynamically.
@@ -28,7 +28,7 @@ export function useSEO(options: SEOOptions = {}) {
 
     useEffect(() => {
         // Update document title
-        const fullTitle = title ? `${title} | Dreamware` : DEFAULT_TITLE;
+        const fullTitle = title ? `${title} | Show Your App` : DEFAULT_TITLE;
         document.title = fullTitle;
 
         // Helper to update or create meta tag

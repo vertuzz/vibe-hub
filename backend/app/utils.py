@@ -12,13 +12,13 @@ def slugify(text: str) -> str:
     5. Strip leading/trailing hyphens
     """
     if not text:
-        return "dream"
+        return "app"
         
     text = text.lower()
     text = re.sub(r'[^a-z0-9]+', '-', text)
     text = re.sub(r'-+', '-', text)
     res = text.strip('-')
-    return res if res else "dream"
+    return res if res else "app"
 
 def generate_unique_slug(base_slug: str) -> str:
     """

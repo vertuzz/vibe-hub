@@ -1,5 +1,5 @@
-// Skeleton loader for Dream cards
-export default function DreamCardSkeleton() {
+// Skeleton loader for App cards
+export default function AppCardSkeleton() {
   return (
     <div className="break-inside-avoid mb-6">
       <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700">

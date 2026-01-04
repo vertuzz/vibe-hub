@@ -2,47 +2,47 @@ import pytest
 from httpx import AsyncClient
 
 @pytest.mark.asyncio
-async def test_dream_like_unlike(client: AsyncClient, auth_headers: dict):
-    # Setup: Create a dream
-    dream_resp = await client.post(
-        "/dreams/", 
-        json={"prompt_text": "Test Dream for Liking"}, 
+async def test_app_like_unlike(client: AsyncClient, auth_headers: dict):
+    # Setup: Create an app
+    app_resp = await client.post(
+        "/apps/", 
+        json={"prompt_text": "Test App for Liking"}, 
         headers=auth_headers
     )
-    dream_id = dream_resp.json()["id"]
+    app_id = app_resp.json()["id"]
 
     # 1. Like
-    resp = await client.post(f"/dreams/{dream_id}/like", headers=auth_headers)
+    resp = await client.post(f"/apps/{app_id}/like", headers=auth_headers)
     assert resp.status_code == 200
     assert resp.json()["message"] == "Liked"
 
     # 2. Like again (failure)
-    resp = await client.post(f"/dreams/{dream_id}/like", headers=auth_headers)
+    resp = await client.post(f"/apps/{app_id}/like", headers=auth_headers)
     assert resp.status_code == 400
     assert resp.json()["detail"] == "Already liked"
 
     # 3. Unlike
-    resp = await client.delete(f"/dreams/{dream_id}/like", headers=auth_headers)
+    resp = await client.delete(f"/apps/{app_id}/like", headers=auth_headers)
     assert resp.status_code == 200
     assert resp.json()["message"] == "Unliked"
 
     # 4. Unlike again (failure)
-    resp = await client.delete(f"/dreams/{dream_id}/like", headers=auth_headers)
+    resp = await client.delete(f"/apps/{app_id}/like", headers=auth_headers)
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Like not found"
 
 @pytest.mark.asyncio
 async def test_comment_voting(client: AsyncClient, auth_headers: dict):
-    # Setup: Create a dream and a comment
-    dream_resp = await client.post(
-        "/dreams/", 
-        json={"prompt_text": "Test Dream for Comment Voting"}, 
+    # Setup: Create an app and a comment
+    app_resp = await client.post(
+        "/apps/", 
+        json={"prompt_text": "Test App for Comment Voting"}, 
         headers=auth_headers
     )
-    dream_id = dream_resp.json()["id"]
+    app_id = app_resp.json()["id"]
     
     comment_resp = await client.post(
-        f"/dreams/{dream_id}/comments", 
+        f"/apps/{app_id}/comments", 
         json={"content": "Test Comment"}, 
         headers=auth_headers
     )
@@ -55,8 +55,8 @@ async def test_comment_voting(client: AsyncClient, auth_headers: dict):
     assert resp.json()["score"] == 1
 
     # Verify score
-    dream_comments = await client.get(f"/dreams/{dream_id}/comments", headers=auth_headers)
-    comment = next(c for c in dream_comments.json() if c["id"] == comment_id)
+    app_comments = await client.get(f"/apps/{app_id}/comments", headers=auth_headers)
+    comment = next(c for c in app_comments.json() if c["id"] == comment_id)
     assert comment["score"] == 1
     assert comment["user_vote"] == 1
 
@@ -66,8 +66,8 @@ async def test_comment_voting(client: AsyncClient, auth_headers: dict):
     assert resp.json()["score"] == -1
 
     # Verify score
-    dream_comments = await client.get(f"/dreams/{dream_id}/comments", headers=auth_headers)
-    comment = next(c for c in dream_comments.json() if c["id"] == comment_id)
+    app_comments = await client.get(f"/apps/{app_id}/comments", headers=auth_headers)
+    comment = next(c for c in app_comments.json() if c["id"] == comment_id)
     assert comment["score"] == -1
     assert comment["user_vote"] == -1
 
@@ -77,7 +77,7 @@ async def test_comment_voting(client: AsyncClient, auth_headers: dict):
     assert resp.json()["score"] == 0
 
     # Verify score
-    dream_comments = await client.get(f"/dreams/{dream_id}/comments", headers=auth_headers)
-    comment = next(c for c in dream_comments.json() if c["id"] == comment_id)
+    app_comments = await client.get(f"/apps/{app_id}/comments", headers=auth_headers)
+    comment = next(c for c in app_comments.json() if c["id"] == comment_id)
     assert comment["score"] == 0
     assert comment["user_vote"] == 0

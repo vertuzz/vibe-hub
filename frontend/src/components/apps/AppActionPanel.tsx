@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import type { Dream } from '~/lib/types';
+import type { App } from '~/lib/types';
 import { useAuth } from '~/contexts/AuthContext';
 import { userService } from '~/lib/services/user-service';
 
-interface DreamActionPanelProps {
-    dream: Dream;
+interface AppActionPanelProps {
+    app: App;
     likesCount: number;
     isLiked: boolean;
     onLike: () => void;
@@ -38,18 +38,18 @@ const statusConfig = {
     },
 };
 
-export default function DreamActionPanel({
-    dream,
+export default function AppActionPanel({
+    app,
     likesCount,
     isLiked,
     onLike,
     onShare,
     onDelete,
     onClaim
-}: DreamActionPanelProps) {
+}: AppActionPanelProps) {
     const { user, isAuthenticated } = useAuth();
-    const isOwner = user?.id === dream.creator_id;
-    const status = statusConfig[dream.status] || statusConfig.Concept;
+    const isOwner = user?.id === app.creator_id;
+    const status = statusConfig[app.status] || statusConfig.Concept;
 
     // Follow state
     const [isFollowing, setIsFollowing] = useState(false);
@@ -58,29 +58,29 @@ export default function DreamActionPanel({
     // Check follow status on mount
     useEffect(() => {
         const fetchFollowStatus = async () => {
-            if (!dream.creator?.id || !isAuthenticated || dream.creator.id === user?.id) return;
+            if (!app.creator?.id || !isAuthenticated || app.creator.id === user?.id) return;
             try {
-                const status = await userService.checkFollowStatus(dream.creator.id);
+                const status = await userService.checkFollowStatus(app.creator.id);
                 setIsFollowing(status.is_following);
             } catch (err) {
                 console.error('Failed to fetch follow status:', err);
             }
         };
         fetchFollowStatus();
-    }, [dream.creator?.id, isAuthenticated, user?.id]);
+    }, [app.creator?.id, isAuthenticated, user?.id]);
 
     const handleFollowClick = async (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!dream.creator?.id || !isAuthenticated) return;
+        if (!app.creator?.id || !isAuthenticated) return;
 
         setFollowLoading(true);
         try {
             if (isFollowing) {
-                await userService.unfollowUser(dream.creator.id);
+                await userService.unfollowUser(app.creator.id);
                 setIsFollowing(false);
             } else {
-                await userService.followUser(dream.creator.id);
+                await userService.followUser(app.creator.id);
                 setIsFollowing(true);
             }
         } catch (err) {
@@ -98,7 +98,7 @@ export default function DreamActionPanel({
                 <div className="flex items-center justify-between">
                     <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${status.bg} border ${status.border}`}>
                         <span className="relative flex h-2.5 w-2.5">
-                            {dream.status === 'Live' && (
+                            {app.status === 'Live' && (
                                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${status.dot} opacity-75`} />
                             )}
                             <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${status.dot}`} />
@@ -109,16 +109,16 @@ export default function DreamActionPanel({
                     {isOwner && (
                         <div className="flex items-center gap-2">
                             <Link
-                                to={`/dreams/${dream.slug}/edit`}
+                                to={`/apps/${app.slug}/edit`}
                                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors"
-                                title="Edit Dream"
+                                title="Edit App"
                             >
                                 <span className="material-symbols-outlined text-[20px]">edit</span>
                             </Link>
                             <button
                                 onClick={onDelete}
                                 className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 transition-colors"
-                                title="Delete Dream"
+                                title="Delete App"
                             >
                                 <span className="material-symbols-outlined text-[20px]">delete</span>
                             </button>
@@ -127,9 +127,9 @@ export default function DreamActionPanel({
                 </div>
 
                 {/* CTA */}
-                {dream.app_url ? (
+                {app.app_url ? (
                     <a
-                        href={dream.app_url}
+                        href={app.app_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-full relative group overflow-hidden rounded-xl bg-gradient-to-br from-blue-600 to-primary p-4 shadow-xl shadow-blue-500/30 transition-all hover:shadow-blue-500/50 hover:scale-[1.02] block"
@@ -146,7 +146,7 @@ export default function DreamActionPanel({
                 )}
 
                 {/* Claim Ownership */}
-                {!dream.is_owner && !isOwner && isAuthenticated && (
+                {!app.is_owner && !isOwner && isAuthenticated && (
                     <button
                         onClick={onClaim}
                         className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-primary/30 text-primary font-bold text-sm hover:border-primary/60 hover:bg-primary/5 transition-all"
@@ -180,26 +180,26 @@ export default function DreamActionPanel({
                 <div className="h-px w-full bg-[var(--border)]" />
 
                 {/* Creator Mini Profile */}
-                {dream.creator && (
-                    <Link to={`/users/${dream.creator.username}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                {app.creator && (
+                    <Link to={`/users/${app.creator.username}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                         <div className="size-12 rounded-full border-2 border-white dark:border-gray-700 shadow-sm overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                            {dream.creator.avatar ? (
-                                <img src={dream.creator.avatar} alt={dream.creator.username} className="w-full h-full object-cover" />
+                            {app.creator.avatar ? (
+                                <img src={app.creator.avatar} alt={app.creator.username} className="w-full h-full object-cover" />
                             ) : (
-                                <span className="text-lg font-bold text-gray-500">{dream.creator.username.charAt(0).toUpperCase()}</span>
+                                <span className="text-lg font-bold text-gray-500">{app.creator.username.charAt(0).toUpperCase()}</span>
                             )}
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-xs text-gray-500 dark:text-gray-400">Created by</p>
-                            <p className="font-bold text-[var(--foreground)] truncate">@{dream.creator.username}</p>
+                            <p className="font-bold text-[var(--foreground)] truncate">@{app.creator.username}</p>
                         </div>
                         <button
                             onClick={handleFollowClick}
-                            disabled={followLoading || !isAuthenticated || dream.creator.id === user?.id}
+                            disabled={followLoading || !isAuthenticated || app.creator.id === user?.id}
                             className={`text-xs font-bold transition-colors ${isFollowing
                                 ? 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
                                 : 'text-primary hover:text-primary-dark dark:text-blue-400 dark:hover:text-blue-300'
-                                } ${(!isAuthenticated || dream.creator.id === user?.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                } ${(!isAuthenticated || app.creator.id === user?.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
                         </button>
@@ -208,9 +208,9 @@ export default function DreamActionPanel({
             </div>
 
             {/* Related Info / Tags */}
-            {dream.tags && dream.tags.length > 0 && (
+            {app.tags && app.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                    {dream.tags.map((tag) => (
+                    {app.tags.map((tag) => (
                         <Link
                             key={tag.id}
                             to={`/?tag_id=${tag.id}`}

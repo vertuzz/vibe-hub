@@ -5,24 +5,24 @@ from sqlalchemy.orm import selectinload
 from typing import List
 
 from app.database import get_db
-from app.models import Comment, User, Dream, Notification, NotificationType, CommentVote
+from app.models import Comment, User, App, Notification, NotificationType, CommentVote
 from app.schemas import schemas
 from app.routers.auth import get_current_user, get_current_user_optional
 from app.services.reputation import update_reputation, COMMENT_VOTE_POINTS
 
 router = APIRouter()
 
-@router.get("/dreams/{dream_id}/comments", response_model=List[schemas.CommentWithUser])
-async def get_dream_comments(
-    dream_id: int, 
+@router.get("/apps/{app_id}/comments", response_model=List[schemas.CommentWithReplies])
+async def get_app_comments(
+    app_id: int,
     current_user: User | None = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db)
 ):
-    # Fetch comments
+    # Fetch comments with replies
     result = await db.execute(
         select(Comment)
-        .options(selectinload(Comment.user))
-        .filter(Comment.dream_id == dream_id)
+        .options(selectinload(Comment.user), selectinload(Comment.replies).selectinload(Comment.user))
+        .filter(Comment.app_id == app_id)
         .order_by(Comment.created_at.desc())
     )
     comments = result.scalars().all()
@@ -55,45 +55,45 @@ async def get_dream_comments(
 
     return comments_with_votes
 
-@router.post("/dreams/{dream_id}/comments", response_model=schemas.Comment)
+@router.post("/apps/{app_id}/comments", response_model=schemas.Comment)
 async def create_comment(
-    dream_id: int,
+    app_id: int,
     comment_in: schemas.CommentCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # Verify dream exists
-    result = await db.execute(select(Dream).filter(Dream.id == dream_id))
-    dream = result.scalars().first()
-    if not dream:
-        raise HTTPException(status_code=404, detail="Dream not found")
+    # Verify app exists
+    app_result = await db.execute(select(App).filter(App.id == app_id))
+    app = app_result.scalars().first()
+    if not app:
+        raise HTTPException(status_code=404, detail="App not found")
     
-    # If parent_id provided, verify it exists and belongs to same dream
+    # If parent_id provided, verify it exists and belongs to same app
     if comment_in.parent_id:
         parent_res = await db.execute(select(Comment).filter(Comment.id == comment_in.parent_id))
         parent = parent_res.scalars().first()
         if not parent:
             raise HTTPException(status_code=404, detail="Parent comment not found")
-        if parent.dream_id != dream_id:
-            raise HTTPException(status_code=400, detail="Parent comment belongs to a different dream")
+        if parent.app_id != app_id:
+            raise HTTPException(status_code=400, detail="Parent comment belongs to a different app")
     
     db_comment = Comment(
-        dream_id=dream_id,
+        app_id=app_id,
         user_id=current_user.id,
         content=comment_in.content,
         parent_id=comment_in.parent_id
     )
     db.add(db_comment)
     
-    # Notify creator (only if top-level or if replying to someone else? For now just notify dream creator)
+    # Notify creator (only if top-level or if replying to someone else? For now just notify app creator)
     # Refinement: If it's a reply, maybe notify the parent comment's author too?
-    # Simple version first: Notify dream creator if not them.
-    if dream.creator_id != current_user.id:
+    # Simple version first: Notify app creator if not them.
+    if app.creator_id != current_user.id:
         notification = Notification(
-            user_id=dream.creator_id,
+            user_id=app.creator_id,
             type=NotificationType.COMMENT,
-            content=f"{current_user.username} commented on your dream",
-            link=f"/dreams/{dream_id}"
+            content=f"{current_user.username} commented on your app",
+            link=f"/apps/{app_id}"
         )
         db.add(notification)
     
@@ -101,13 +101,13 @@ async def create_comment(
     if comment_in.parent_id:
         parent_res = await db.execute(select(Comment).filter(Comment.id == comment_in.parent_id))
         parent = parent_res.scalars().first()
-        if parent and parent.user_id != current_user.id and parent.user_id != dream.creator_id:
-             # Avoid double notification if dream creator is parent author
+        if parent and parent.user_id != current_user.id and parent.user_id != app.creator_id:
+             # Avoid double notification if app creator is parent author
              notification = Notification(
                 user_id=parent.user_id,
                 type=NotificationType.COMMENT,
                 content=f"{current_user.username} replied to your comment",
-                link=f"/dreams/{dream_id}"
+                link=f"/apps/{app_id}"
             )
              db.add(notification)
 

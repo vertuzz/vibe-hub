@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import (
-    auth, users, dreams, comments, reviews, 
+    auth, users, apps, comments, reviews, 
     likes, implementations, collections, 
     follows, notifications, tools, tags, media,
     ownership, feedback
@@ -9,8 +9,8 @@ from app.routers import (
 from app.core.config import settings
 
 app = FastAPI(
-    title="Dreamware API",
-    description="Backend for Dreamware - The Pinterest for Engineers",
+    title="Show Your App API",
+    description="Backend for Show Your App - The launchpad for AI-generated software",
     version="0.1.0"
 )
 
@@ -26,8 +26,8 @@ app.add_middleware(
 # Register routers
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(users.router, prefix="/users", tags=["users"])
-app.include_router(dreams.router, prefix="/dreams", tags=["dreams"])
-app.include_router(comments.router, prefix="", tags=["comments"]) # Prefix is handled inside for dreams
+app.include_router(apps.router, prefix="/apps", tags=["apps"])
+app.include_router(comments.router, prefix="", tags=["comments"]) # Prefix is handled inside for apps
 app.include_router(reviews.router, prefix="", tags=["reviews"])
 app.include_router(likes.router, prefix="", tags=["likes"])
 app.include_router(implementations.router, prefix="", tags=["implementations"])
@@ -42,4 +42,4 @@ app.include_router(feedback.router, tags=["feedback"])
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to Dreamware API"}
+    return {"message": "Welcome to Show Your App API"}

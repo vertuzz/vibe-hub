@@ -34,7 +34,7 @@ export default function Header({ onSearch }: HeaderProps) {
               </span>
             </div>
             <h2 className="text-xl font-bold tracking-tight text-[#0d111b] dark:text-white">
-              Dreamware
+              Show Your App
             </h2>
           </Link>
 
@@ -45,7 +45,7 @@ export default function Header({ onSearch }: HeaderProps) {
               <input
                 type="text"
                 className="w-full bg-transparent border-none focus:ring-0 text-sm font-medium text-[#0d111b] dark:text-white placeholder:text-gray-500 ml-2 h-full outline-none"
-                placeholder="Search dreams, agents..."
+                placeholder="Search apps, agents..."
                 onChange={(e) => onSearch?.(e.target.value)}
               />
             </div>
@@ -91,11 +91,11 @@ export default function Header({ onSearch }: HeaderProps) {
 
           {/* CTA Button */}
           <Link
-            to={isLoggedIn ? "/dreams/create" : "/login"}
+            to={isLoggedIn ? "/apps/create" : "/login"}
             className="hidden sm:flex items-center justify-center gap-2 h-10 px-5 bg-primary hover:bg-primary-dark text-white text-sm font-bold rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
           >
             <span className="material-symbols-outlined text-[20px]">add</span>
-            <span>Submit a Dream</span>
+            <span>Submit an App</span>
           </Link>
 
           {/* User Profile */}

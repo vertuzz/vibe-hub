@@ -16,14 +16,14 @@ async def test_get_tags_public(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_tags_with_counts(client: AsyncClient):
-    """Test getting tags with dream counts."""
+    """Test getting tags with app counts."""
     response = await client.get("/tags/with-counts")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
-    # Each tag should have dream_count field
+    # Each tag should have app_count field
     if len(data) > 0:
-        assert "dream_count" in data[0]
+        assert "app_count" in data[0]
         assert "name" in data[0]
         assert "id" in data[0]
 
@@ -144,30 +144,30 @@ async def test_delete_tag_not_found(client: AsyncClient, admin_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_delete_tag_removes_from_dreams(client: AsyncClient, admin_headers: dict, auth_headers: dict):
-    """Test that deleting a tag removes it from associated dreams."""
+async def test_delete_tag_removes_from_apps(client: AsyncClient, admin_headers: dict, auth_headers: dict):
+    """Test that deleting a tag removes it from associated apps."""
     # Create a tag
-    tag_resp = await client.post("/tags/", json={"name": "TagForDream"}, headers=admin_headers)
+    tag_resp = await client.post("/tags/", json={"name": "TagForApp"}, headers=admin_headers)
     tag_id = tag_resp.json()["id"]
     
-    # Create a dream with the tag
-    dream_resp = await client.post("/dreams/", json={
-        "title": "Dream With Tag",
+    # Create an app with the tag
+    app_resp = await client.post("/apps/", json={
+        "title": "App With Tag",
         "prompt_text": "Testing tag deletion",
         "tag_ids": [tag_id]
     }, headers=auth_headers)
-    dream_slug = dream_resp.json()["slug"]
+    app_slug = app_resp.json()["slug"]
     
-    # Verify dream has the tag
-    dream_detail = await client.get(f"/dreams/{dream_slug}")
-    assert any(t["id"] == tag_id for t in dream_detail.json()["tags"])
+    # Verify app has the tag
+    app_detail = await client.get(f"/apps/{app_slug}")
+    assert any(t["id"] == tag_id for t in app_detail.json()["tags"])
     
     # Delete the tag
     await client.delete(f"/tags/{tag_id}", headers=admin_headers)
     
-    # Verify dream no longer has the tag
-    dream_detail = await client.get(f"/dreams/{dream_slug}")
-    assert not any(t["id"] == tag_id for t in dream_detail.json()["tags"])
+    # Verify app no longer has the tag
+    app_detail = await client.get(f"/apps/{app_slug}")
+    assert not any(t["id"] == tag_id for t in app_detail.json()["tags"])
 
 
 # =============================================================================
@@ -184,14 +184,14 @@ async def test_get_tools_public(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_tools_with_counts(client: AsyncClient):
-    """Test getting tools with dream counts."""
+    """Test getting tools with app counts."""
     response = await client.get("/tools/with-counts")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
-    # Each tool should have dream_count field
+    # Each tool should have app_count field
     if len(data) > 0:
-        assert "dream_count" in data[0]
+        assert "app_count" in data[0]
         assert "name" in data[0]
         assert "id" in data[0]
 
@@ -312,27 +312,27 @@ async def test_delete_tool_not_found(client: AsyncClient, admin_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_delete_tool_removes_from_dreams(client: AsyncClient, admin_headers: dict, auth_headers: dict):
-    """Test that deleting a tool removes it from associated dreams."""
+async def test_delete_tool_removes_from_apps(client: AsyncClient, admin_headers: dict, auth_headers: dict):
+    """Test that deleting a tool removes it from associated apps."""
     # Create a tool
-    tool_resp = await client.post("/tools/", json={"name": "ToolForDream"}, headers=admin_headers)
+    tool_resp = await client.post("/tools/", json={"name": "ToolForApp"}, headers=admin_headers)
     tool_id = tool_resp.json()["id"]
     
-    # Create a dream with the tool
-    dream_resp = await client.post("/dreams/", json={
-        "title": "Dream With Tool",
+    # Create an app with the tool
+    app_resp = await client.post("/apps/", json={
+        "title": "App With Tool",
         "prompt_text": "Testing tool deletion",
         "tool_ids": [tool_id]
     }, headers=auth_headers)
-    dream_slug = dream_resp.json()["slug"]
+    app_slug = app_resp.json()["slug"]
     
-    # Verify dream has the tool
-    dream_detail = await client.get(f"/dreams/{dream_slug}")
-    assert any(t["id"] == tool_id for t in dream_detail.json()["tools"])
+    # Verify app has the tool
+    app_detail = await client.get(f"/apps/{app_slug}")
+    assert any(t["id"] == tool_id for t in app_detail.json()["tools"])
     
     # Delete the tool
     await client.delete(f"/tools/{tool_id}", headers=admin_headers)
     
-    # Verify dream no longer has the tool
-    dream_detail = await client.get(f"/dreams/{dream_slug}")
-    assert not any(t["id"] == tool_id for t in dream_detail.json()["tools"])
+    # Verify app no longer has the tool
+    app_detail = await client.get(f"/apps/{app_slug}")
+    assert not any(t["id"] == tool_id for t in app_detail.json()["tools"])

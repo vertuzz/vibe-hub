@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from typing import List
 
 from app.database import get_db
-from app.models import Tag, User, dream_tags
+from app.models import Tag, User, app_tags
 from app.schemas import schemas
 from app.routers.auth import require_admin
 
@@ -18,13 +18,13 @@ async def get_tags(db: AsyncSession = Depends(get_db)):
 
 @router.get("/with-counts", response_model=List[schemas.TagWithCount])
 async def get_tags_with_counts(db: AsyncSession = Depends(get_db)):
-    """Get all tags with their dream usage counts (for admin)."""
+    """Get all tags with their app usage counts (for admin)."""
     result = await db.execute(
         select(
             Tag,
-            func.count(dream_tags.c.dream_id).label("dream_count")
+            func.count(app_tags.c.app_id).label("app_count")
         )
-        .outerjoin(dream_tags, Tag.id == dream_tags.c.tag_id)
+        .outerjoin(app_tags, Tag.id == app_tags.c.tag_id)
         .group_by(Tag.id)
         .order_by(Tag.name)
     )
@@ -35,7 +35,7 @@ async def get_tags_with_counts(db: AsyncSession = Depends(get_db)):
         tags_with_counts.append(schemas.TagWithCount(
             id=tag.id,
             name=tag.name,
-            dream_count=count
+            app_count=count
         ))
     return tags_with_counts
 
@@ -95,7 +95,7 @@ async def delete_tag(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
-    """Delete a tag (admin only). Removes associations with dreams."""
+    """Delete a tag (admin only). Removes associations with apps."""
     result = await db.execute(select(Tag).where(Tag.id == tag_id))
     tag = result.scalar_one_or_none()
     if not tag:

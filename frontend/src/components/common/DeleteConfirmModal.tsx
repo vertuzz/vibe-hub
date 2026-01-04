@@ -14,8 +14,8 @@ export default function DeleteConfirmModal({
     isOpen,
     onClose,
     onConfirm,
-    title = 'Delete Dream',
-    message = 'Are you sure you want to delete this dream? This action cannot be undone.',
+    title = 'Delete App',
+    message = 'Are you sure you want to delete this app? This action cannot be undone.',
     confirmLabel = 'Delete',
     isDeleting = false,
 }: DeleteConfirmModalProps) {

@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
-import { dreamService } from '~/lib/services/dream-service';
+import { appService } from '~/lib/services/app-service';
 
 interface ClaimOwnershipModalProps {
     isOpen: boolean;
     onClose: () => void;
-    dreamId: number;
-    dreamTitle: string;
+    appId: number;
+    appTitle: string;
     onSuccess: () => void;
 }
 
 const ClaimOwnershipModal: React.FC<ClaimOwnershipModalProps> = ({
     isOpen,
     onClose,
-    dreamId,
-    dreamTitle,
+    appId,
+    appTitle,
     onSuccess
 }) => {
     const [message, setMessage] = useState('');
@@ -28,7 +28,7 @@ const ClaimOwnershipModal: React.FC<ClaimOwnershipModalProps> = ({
         setError(null);
 
         try {
-            await dreamService.claimOwnership(dreamId, message);
+            await appService.claimOwnership(appId, message);
             onSuccess();
             onClose();
         } catch (err: any) {
@@ -54,7 +54,7 @@ const ClaimOwnershipModal: React.FC<ClaimOwnershipModalProps> = ({
                     </div>
 
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 font-medium">
-                        Are you the real owner of <span className="text-slate-900 dark:text-white font-bold">"{dreamTitle}"</span>?
+                        Are you the real owner of <span className="text-slate-900 dark:text-white font-bold">"{appTitle}"</span>?
                         Please provide some proof (e.g., a link to your website where you mention this project, or a DNS record).
                     </p>
 

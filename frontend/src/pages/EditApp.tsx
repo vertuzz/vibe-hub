@@ -1,35 +1,35 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { dreamService } from '~/lib/services/dream-service';
+import { appService } from '~/lib/services/app-service';
 import { toolService } from '~/lib/services/tool-service';
 import { tagService } from '~/lib/services/tag-service';
 import { mediaService } from '~/lib/services/media-service';
 import { isValidUrl, isValidYoutubeUrl } from '~/lib/utils';
-import type { Tool, Tag, Dream, DreamMedia } from '~/lib/types';
+import type { Tool, Tag, App, AppMedia } from '~/lib/types';
 import Header from '~/components/layout/Header';
 import { useAuth } from '~/contexts/AuthContext';
 import { useSEO } from '~/lib/hooks/useSEO';
 
 // Sub-components
-import BasicsSection from '~/components/dreams/create/BasicsSection';
-import VisualsSection from '~/components/dreams/create/VisualsSection';
-import DetailsSection from '~/components/dreams/create/DetailsSection';
-import DreamPreview from '~/components/dreams/create/DreamPreview';
-import StatusSelector from '~/components/dreams/create/StatusSelector';
-import OwnershipSelector from '~/components/dreams/create/OwnershipSelector';
+import BasicsSection from '~/components/apps/create/BasicsSection';
+import VisualsSection from '~/components/apps/create/VisualsSection';
+import DetailsSection from '~/components/apps/create/DetailsSection';
+import AppPreview from '~/components/apps/create/AppPreview';
+import StatusSelector from '~/components/apps/create/StatusSelector';
+import OwnershipSelector from '~/components/apps/create/OwnershipSelector';
 
-export default function EditDream() {
+export default function EditApp() {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
     const { user } = useAuth();
 
-    // Original Dream state
-    const [dream, setDream] = useState<Dream | null>(null);
+    // Original App state
+    const [app, setApp] = useState<App | null>(null);
 
-    // SEO - Dynamic title based on loaded dream
+    // SEO - Dynamic title based on loaded app
     useSEO({
-        title: dream ? `Edit: ${dream.title}` : 'Edit Dream',
-        url: `/dreams/${slug}/edit`,
+        title: app ? `Edit: ${app.title}` : 'Edit App',
+        url: `/apps/${slug}/edit`,
     });
 
     // Form State
@@ -38,7 +38,7 @@ export default function EditDream() {
     const [youtubeUrl, setYoutubeUrl] = useState('');
     const [tagline, setTagline] = useState('');
     const [prdText, setPrdText] = useState('');
-    const [status, setStatus] = useState<Dream['status']>('Concept');
+    const [status, setStatus] = useState<App['status']>('Concept');
     const [isOwner, setIsOwner] = useState(false);
 
     // Selection state
@@ -50,7 +50,7 @@ export default function EditDream() {
     // Media State
     const [files, setFiles] = useState<File[]>([]);
     const [previews, setPreviews] = useState<string[]>([]);
-    const [existingMedia, setExistingMedia] = useState<DreamMedia[]>([]);
+    const [existingMedia, setExistingMedia] = useState<AppMedia[]>([]);
 
     // UI State
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,30 +61,30 @@ export default function EditDream() {
         const fetchData = async () => {
             if (!slug) return;
             try {
-                const [tools, tags, dreamData] = await Promise.all([
+                const [tools, tags, appData] = await Promise.all([
                     toolService.getTools(),
                     tagService.getTags(),
-                    dreamService.getDream(slug)
+                    appService.getApp(slug)
                 ]);
 
                 setAvailableTools(tools);
                 setAvailableTags(tags);
-                setDream(dreamData);
+                setApp(appData);
 
                 // Pre-populate
-                setTitle(dreamData.title || '');
-                setAppUrl(dreamData.app_url || '');
-                setYoutubeUrl(dreamData.youtube_url || '');
-                setTagline(dreamData.prompt_text || '');
-                setPrdText(dreamData.prd_text || '');
-                setSelectedTools(dreamData.tools || []);
-                setSelectedTags(dreamData.tags || []);
-                setStatus(dreamData.status);
-                setIsOwner(dreamData.is_owner || false);
-                setExistingMedia(dreamData.media || []);
+                setTitle(appData.title || '');
+                setAppUrl(appData.app_url || '');
+                setYoutubeUrl(appData.youtube_url || '');
+                setTagline(appData.prompt_text || '');
+                setPrdText(appData.prd_text || '');
+                setSelectedTools(appData.tools || []);
+                setSelectedTags(appData.tags || []);
+                setStatus(appData.status);
+                setIsOwner(appData.is_owner || false);
+                setExistingMedia(appData.media || []);
             } catch (err) {
                 console.error('Failed to fetch data:', err);
-                setError('Failed to load dream data.');
+                setError('Failed to load app data.');
             } finally {
                 setIsLoading(false);
             }
@@ -94,10 +94,10 @@ export default function EditDream() {
 
     // Check ownership
     useEffect(() => {
-        if (!isLoading && dream && user && dream.creator_id !== user.id) {
-            navigate(`/dreams/${slug}`);
+        if (!isLoading && app && user && app.creator_id !== user.id) {
+            navigate(`/apps/${slug}`);
         }
-    }, [isLoading, dream, user, navigate, slug]);
+    }, [isLoading, app, user, navigate, slug]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -119,9 +119,9 @@ export default function EditDream() {
     };
 
     const handleRemoveExisting = async (mediaId: number) => {
-        if (!dream) return;
+        if (!app) return;
         try {
-            await mediaService.deleteMedia(dream.id, mediaId);
+            await mediaService.deleteMedia(app.id, mediaId);
             setExistingMedia(prev => prev.filter(m => m.id !== mediaId));
         } catch (err) {
             console.error('Failed to delete media:', err);
@@ -131,7 +131,7 @@ export default function EditDream() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (isSubmitting || !dream) return;
+        if (isSubmitting || !app) return;
 
         if (appUrl && !isValidUrl(appUrl)) {
             setError('Please enter a valid Live App Link.');
@@ -147,8 +147,8 @@ export default function EditDream() {
         setError(null);
 
         try {
-            // 1. Update the Dream
-            const updatedDream = await dreamService.updateDream(dream.id, {
+            // 1. Update the App
+            const updatedApp = await appService.updateApp(app.id, {
                 title,
                 prompt_text: tagline,
                 prd_text: prdText,
@@ -165,15 +165,15 @@ export default function EditDream() {
                 const uploadPromises = files.map(async (file) => {
                     const { upload_url, download_url } = await mediaService.getPresignedUrl(file.name, file.type);
                     await mediaService.uploadFile(file, upload_url);
-                    await mediaService.linkMediaToDream(dream.id, download_url);
+                    await mediaService.linkMediaToApp(app.id, download_url);
                 });
 
                 await Promise.all(uploadPromises);
             }
 
-            // 3. Redirect back to the dream page (slug might have changed if title changed, but usually we don't change slug on update to avoid broken links, or backend handles it)
-            // Backend update_dream doesn't change slug.
-            navigate(`/dreams/${updatedDream.slug}`);
+            // 3. Redirect back to the app page (slug might have changed if title changed, but usually we don't change slug on update to avoid broken links, or backend handles it)
+            // Backend update_app doesn't change slug.
+            navigate(`/apps/${updatedApp.slug}`);
         } catch (err: any) {
             console.error('Update failed:', err);
             setError(err.response?.data?.detail || 'Something went wrong during update. Please try again.');
@@ -211,7 +211,7 @@ export default function EditDream() {
                                 <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                                 <span>Back</span>
                             </button>
-                            <h1 className="text-slate-900 dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-tight">Edit Dream</h1>
+                            <h1 className="text-slate-900 dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-tight">Edit App</h1>
                             <p className="text-slate-500 dark:text-slate-400 text-base md:text-lg">Refine your vision for the AI-generated masterpiece.</p>
                         </div>
 
@@ -294,7 +294,7 @@ export default function EditDream() {
 
                     {/* RIGHT COLUMN: Sticky Preview */}
                     <div className="hidden lg:block lg:col-span-4">
-                        <DreamPreview
+                        <AppPreview
                             title={title}
                             tagline={tagline}
                             previews={previews} // Shows new uploads only for now

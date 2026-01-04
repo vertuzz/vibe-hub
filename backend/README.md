@@ -1,6 +1,6 @@
-# Dreamware Backend
+# Show Your App Backend
 
-The backend for Dreamware, a visual-first aggregation platform for AI-generated software concepts ("Vibe Coding").
+The backend for Show Your App, a visual-first aggregation platform for AI-generated software concepts ("Vibe Coding").
 
 ## Tech Stack
 - **Python**: 3.13
@@ -46,8 +46,8 @@ uv run pytest
 ### 4. Environment Configuration
 The project uses `.env` files for configuration. Create a `backend/.env` file:
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/dreamware
-TEST_DATABASE_URL=postgresql://user:password@localhost:5432/dreamware_test
+DATABASE_URL=postgresql://user:password@localhost:5432/show_your_app
+TEST_DATABASE_URL=postgresql://user:password@localhost:5432/show_your_app_test
 SECRET_KEY=your_secret_key_here
 
 # S3 / S3-Compatible Storage
@@ -67,7 +67,7 @@ GITHUB_CLIENT_SECRET=your_github_client_secret
 ### 5. Database Initialization
 Run migrations to set up the database schema:
 ```bash
-export DATABASE_URL=postgresql://user:password@localhost:5432/dreamware
+export DATABASE_URL=postgresql://user:password@localhost:5432/show_your_app
 uv run alembic upgrade head
 ```
 

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '~/contexts/AuthContext';
-import { dreamService } from '~/lib/services/dream-service';
+import { appService } from '~/lib/services/app-service';
 import { userService } from '~/lib/services/user-service';
-import type { Dream, User } from '~/lib/types';
-import DreamCard from '~/components/dreams/DreamCard';
+import type { App, User } from '~/lib/types';
+import AppCard from '~/components/apps/AppCard';
 import NotificationList from '~/components/notifications/NotificationList';
 import EditProfileModal from '~/components/common/EditProfileModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
@@ -24,8 +24,8 @@ const XIcon = ({ size = 20 }: { size?: number }) => (
 
 export default function Profile() {
     const { user, logout, isLoading, setUser } = useAuth();
-    const [dreams, setDreams] = useState<Dream[]>([]);
-    const [likedDreams, setLikedDreams] = useState<Dream[]>([]);
+    const [apps, setApps] = useState<App[]>([]);
+    const [likedApps, setLikedApps] = useState<App[]>([]);
     const [showApiKey, setShowApiKey] = useState(false);
     const [copied, setCopied] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -46,23 +46,23 @@ export default function Profile() {
     };
 
     useEffect(() => {
-        const fetchUserDreams = async () => {
+        const fetchUserApps = async () => {
             if (user?.id) {
                 try {
-                    const [userDreams, userLikedDreams] = await Promise.all([
-                        dreamService.getDreams({ creator_id: user.id }),
-                        dreamService.getDreams({ liked_by_user_id: user.id })
+                    const [userApps, userLikedApps] = await Promise.all([
+                        appService.getApps({ creator_id: user.id }),
+                        appService.getApps({ liked_by_user_id: user.id })
                     ]);
-                    setDreams(userDreams);
-                    setLikedDreams(userLikedDreams);
+                    setApps(userApps);
+                    setLikedApps(userLikedApps);
                 } catch (err) {
-                    console.error('Failed to fetch user dreams:', err);
+                    console.error('Failed to fetch user apps:', err);
                 }
             }
         };
 
         if (user) {
-            fetchUserDreams();
+            fetchUserApps();
         }
     }, [user]);
 
@@ -215,7 +215,7 @@ export default function Profile() {
                                         </button>
                                     </div>
                                     <p className="text-sm text-gray-500">
-                                        Use this key to submit dreams programmatically using the <span className="font-semibold text-primary">Dreamware AI Agent</span>.
+                                        Use this key to submit apps programmatically using the <span className="font-semibold text-primary">Show Your App AI Agent</span>.
                                         Keep it confidential to protect your account.
                                     </p>
                                     <div className="flex gap-2">
@@ -278,13 +278,13 @@ export default function Profile() {
                 </div>
 
                 {/* Tabs & Content */}
-                <Tabs defaultValue="dreams" className="space-y-8">
+                <Tabs defaultValue="apps" className="space-y-8">
                     <TabsList className="bg-transparent border-b border-gray-200 w-full justify-start h-auto p-0 gap-8">
                         <TabsTrigger
-                            value="dreams"
+                            value="apps"
                             className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3 px-1 text-base font-semibold transition-all"
                         >
-                            Dreams <span className="ml-2 text-sm text-gray-400 font-normal">{dreams.length}</span>
+                            Apps <span className="ml-2 text-sm text-gray-400 font-normal">{apps.length}</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="collections"
@@ -296,7 +296,7 @@ export default function Profile() {
                             value="likes"
                             className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3 px-1 text-base font-semibold transition-all"
                         >
-                            Likes <span className="ml-2 text-sm text-gray-400 font-normal">{likedDreams.length}</span>
+                            Likes <span className="ml-2 text-sm text-gray-400 font-normal">{likedApps.length}</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="notifications"
@@ -306,18 +306,18 @@ export default function Profile() {
                         </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="dreams" className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        {dreams.length > 0 ? (
+                    <TabsContent value="apps" className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        {apps.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {dreams.map((dream) => (
-                                    <DreamCard key={dream.id} dream={dream} />
+                                {apps.map((app) => (
+                                    <AppCard key={app.id} app={app} />
                                 ))}
                             </div>
                         ) : (
                             <div className="bg-white rounded-3xl p-12 text-center border border-dashed border-gray-200">
-                                <h3 className="text-xl font-bold text-gray-900 mb-2">No dreams yet</h3>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">No apps yet</h3>
                                 <p className="text-gray-500 mb-6">Start your journey by creating your first AI-powered app.</p>
-                                <Button onClick={() => navigate('/dreams/create')}>Submit a Dream</Button>
+                                <Button onClick={() => navigate('/apps/create')}>Submit an App</Button>
                             </div>
                         )}
                     </TabsContent>
@@ -325,21 +325,21 @@ export default function Profile() {
                     <TabsContent value="collections" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <div className="bg-white rounded-3xl p-12 text-center border border-dashed border-gray-200">
                             <h3 className="text-xl font-bold text-gray-900 mb-2">No collections yet</h3>
-                            <p className="text-gray-500">You haven't created any collections of dreams yet.</p>
+                            <p className="text-gray-500">You haven't created any collections of apps yet.</p>
                         </div>
                     </TabsContent>
 
                     <TabsContent value="likes" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        {likedDreams.length > 0 ? (
+                        {likedApps.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {likedDreams.map((dream) => (
-                                    <DreamCard key={dream.id} dream={dream} />
+                                {likedApps.map((app) => (
+                                    <AppCard key={app.id} app={app} />
                                 ))}
                             </div>
                         ) : (
                             <div className="bg-white rounded-3xl p-12 text-center border border-dashed border-gray-200">
                                 <h3 className="text-xl font-bold text-gray-900 mb-2">No likes yet</h3>
-                                <p className="text-gray-500">Dreams you like will appear here.</p>
+                                <p className="text-gray-500">Apps you like will appear here.</p>
                             </div>
                         )}
                     </TabsContent>

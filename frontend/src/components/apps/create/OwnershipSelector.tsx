@@ -47,7 +47,7 @@ const OwnershipSelector: React.FC<OwnershipSelectorProps> = ({ isOwner, onChange
 
             {!isOwner && (
                 <p className="text-[10px] text-slate-400 mt-2 bg-white/50 p-2 rounded-lg italic">
-                    Note: If you are the real owner but someone else submitted your app, you can claim ownership later from the dream page.
+                    Note: If you are the real owner but someone else submitted your app, you can claim ownership later from the app page.
                 </p>
             )}
         </div>

@@ -1,11 +1,11 @@
 import { useRef } from 'react';
-import type { DreamMedia } from '~/lib/types';
+import type { AppMedia } from '~/lib/types';
 
 interface VisualsSectionProps {
     previews: string[];
     handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     removeFile: (index: number) => void;
-    existingMedia?: DreamMedia[];
+    existingMedia?: AppMedia[];
     onRemoveExisting?: (mediaId: number) => void;
 }
 

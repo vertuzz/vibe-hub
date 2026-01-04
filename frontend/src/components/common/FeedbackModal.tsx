@@ -131,7 +131,7 @@ export default function FeedbackModal({ isOpen, onClose, onSubmit }: FeedbackMod
                                         Send Feedback
                                     </h2>
                                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                                        Help us improve Dreamware
+                                        Help us improve Show Your App
                                     </p>
                                 </div>
                             </div>

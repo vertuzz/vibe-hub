@@ -77,7 +77,7 @@ export default function Login() {
                 {/* Left Side: Visual Branding */}
                 <div className="hidden lg:flex flex-col justify-between p-12 bg-primary text-primary-foreground relative overflow-hidden">
                     <div className="relative z-10">
-                        <h1 className="text-4xl font-bold mb-6 italic tracking-tight">Dreamware</h1>
+                        <h1 className="text-4xl font-bold mb-6 italic tracking-tight">Show Your App</h1>
                         <div className="space-y-4 max-w-md">
                             <p className="text-xl opacity-90">
                                 The "itch.io for AI Apps" – a launchpad and showcase platform for AI-generated software.
@@ -109,7 +109,7 @@ export default function Login() {
                 <div className="flex items-center justify-center p-6 bg-background">
                     <Card className="w-full max-w-md border-none shadow-none lg:shadow-sm lg:border">
                         <CardHeader className="space-y-1">
-                            <CardTitle className="text-2xl font-bold">Welcome to Dreamware</CardTitle>
+                            <CardTitle className="text-2xl font-bold">Welcome to Show Your App</CardTitle>
                             <CardDescription>
                                 Sign in to your account or create a new one to start shipping.
                             </CardDescription>

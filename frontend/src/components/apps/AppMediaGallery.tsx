@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import type { DreamMedia } from '~/lib/types';
+import type { AppMedia } from '~/lib/types';
 
-interface DreamMediaGalleryProps {
-    media?: DreamMedia[];
+interface AppMediaGalleryProps {
+    media?: AppMedia[];
     youtubeUrl?: string;
     title: string;
 }
@@ -14,7 +14,7 @@ function getYouTubeVideoId(url: string): string | null {
     return match && match[2].length === 11 ? match[2] : null;
 }
 
-export default function DreamMediaGallery({ media, youtubeUrl, title }: DreamMediaGalleryProps) {
+export default function AppMediaGallery({ media, youtubeUrl, title }: AppMediaGalleryProps) {
     const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
 
     const hasYouTube = youtubeUrl && getYouTubeVideoId(youtubeUrl);
@@ -65,7 +65,7 @@ export default function DreamMediaGallery({ media, youtubeUrl, title }: DreamMed
                     </>
                 ) : (
                     <img
-                        src="/placeholder-dream.png"
+                        src="/placeholder-app.png"
                         alt={title}
                         className="w-full h-full object-cover"
                     />

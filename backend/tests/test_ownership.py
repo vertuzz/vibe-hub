@@ -15,42 +15,42 @@ async def get_auth_headers(client: AsyncClient, username: str):
     return {"Authorization": f"Bearer {token}"}
 
 @pytest.mark.asyncio
-async def test_create_dream_with_ownership(client: AsyncClient, auth_headers: dict):
-    # Test creating a dream as owner
-    dream_data = {
-        "title": "Owner Dream",
-        "prompt_text": "A dream I own",
+async def test_create_app_with_ownership(client: AsyncClient, auth_headers: dict):
+    # Test creating an app as owner
+    app_data = {
+        "title": "Owner App",
+        "prompt_text": "An app I own",
         "is_owner": True
     }
-    response = await client.post("/dreams/", json=dream_data, headers=auth_headers)
+    response = await client.post("/apps/", json=app_data, headers=auth_headers)
     assert response.status_code == 200
     assert response.json()["is_owner"] == True
 
-    # Test creating a dream as non-owner (submitter)
-    dream_data_2 = {
-        "title": "Submitter Dream",
-        "prompt_text": "A dream I submitted for someone else",
+    # Test creating an app as non-owner (submitter)
+    app_data_2 = {
+        "title": "Submitter App",
+        "prompt_text": "An app I submitted for someone else",
         "is_owner": False
     }
-    response = await client.post("/dreams/", json=dream_data_2, headers=auth_headers)
+    response = await client.post("/apps/", json=app_data_2, headers=auth_headers)
     assert response.status_code == 200
     assert response.json()["is_owner"] == False
 
 @pytest.mark.asyncio
 async def test_ownership_claim_lifecycle(client: AsyncClient, admin_headers: dict):
-    # Setup: User A creates a dream as non-owner
+    # Setup: User A creates an app as non-owner
     headers_a = await get_auth_headers(client, "user_a")
-    dream_resp = await client.post("/dreams/", json={
+    app_resp = await client.post("/apps/", json={
         "title": "Global App",
         "prompt_text": "Someone else's app",
         "is_owner": False
     }, headers=headers_a)
-    dream_id = dream_resp.json()["id"]
+    app_id = app_resp.json()["id"]
     
     # User B claims ownership
     headers_b = await get_auth_headers(client, "user_b")
     claim_resp = await client.post(
-        f"/dreams/{dream_id}/claim-ownership",
+        f"/apps/{app_id}/claim-ownership",
         json={"message": "I am the real dev. Check my site at userb.com"},
         headers=headers_b
     )
@@ -60,14 +60,14 @@ async def test_ownership_claim_lifecycle(client: AsyncClient, admin_headers: dic
 
     # User B tries to claim again (should fail)
     claim_resp_again = await client.post(
-        f"/dreams/{dream_id}/claim-ownership",
+        f"/apps/{app_id}/claim-ownership",
         json={"message": "Double claim"},
         headers=headers_b
     )
     assert claim_resp_again.status_code == 400
 
     # User A (creator) views claims
-    claims_resp = await client.get(f"/dreams/{dream_id}/ownership-claims", headers=headers_a)
+    claims_resp = await client.get(f"/apps/{app_id}/ownership-claims", headers=headers_a)
     assert claims_resp.status_code == 200
     assert len(claims_resp.json()) >= 1
 
@@ -80,30 +80,30 @@ async def test_ownership_claim_lifecycle(client: AsyncClient, admin_headers: dic
     assert resolve_resp.status_code == 200
     assert resolve_resp.json()["status"] == "approved"
 
-    # Verify dream ownership transferred to User B
-    dream_final_resp = await client.get(f"/dreams/{dream_id}")
-    dream_data = dream_final_resp.json()
-    assert dream_data["is_owner"] == True
+    # Verify app ownership transferred to User B
+    app_final_resp = await client.get(f"/apps/{app_id}")
+    app_data = app_final_resp.json()
+    assert app_data["is_owner"] == True
     # We need to get User B's ID to verify creator_id
     user_b_resp = await client.get("/auth/me", headers=headers_b)
     user_b_id = user_b_resp.json()["id"]
-    assert dream_data["creator_id"] == user_b_id
+    assert app_data["creator_id"] == user_b_id
 
 @pytest.mark.asyncio
 async def test_ownership_claim_rejection(client: AsyncClient, admin_headers: dict):
-    # Setup: User A creates a dream
+    # Setup: User A creates an app
     headers_a = await get_auth_headers(client, "user_reject_creator")
-    dream_resp = await client.post("/dreams/", json={
+    app_resp = await client.post("/apps/", json={
         "title": "Rejected App",
         "prompt_text": "Test rejection",
         "is_owner": False
     }, headers=headers_a)
-    dream_id = dream_resp.json()["id"]
+    app_id = app_resp.json()["id"]
 
     # User C claims ownership
     headers_c = await get_auth_headers(client, "user_c")
     claim_resp = await client.post(
-        f"/dreams/{dream_id}/claim-ownership",
+        f"/apps/{app_id}/claim-ownership",
         json={"message": "I'm a fake"},
         headers=headers_c
     )
@@ -118,7 +118,7 @@ async def test_ownership_claim_rejection(client: AsyncClient, admin_headers: dic
     assert resolve_resp.status_code == 200
     assert resolve_resp.json()["status"] == "rejected"
 
-    # Verify dream ownership NOT transferred
-    dream_final_resp = await client.get(f"/dreams/{dream_id}")
-    assert dream_final_resp.json()["is_owner"] == False
-    assert dream_final_resp.json()["creator_id"] != (await client.get("/auth/me", headers=headers_c)).json()["id"]
+    # Verify app ownership NOT transferred
+    app_final_resp = await client.get(f"/apps/{app_id}")
+    assert app_final_resp.json()["is_owner"] == False
+    assert app_final_resp.json()["creator_id"] != (await client.get("/auth/me", headers=headers_c)).json()["id"]

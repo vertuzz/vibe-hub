@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, EmailStr, HttpUrl
-from app.models import DreamStatus, NotificationType, FeedbackType
+from app.models import AppStatus, NotificationType, FeedbackType
 
 # User Schemas
 class UserBase(BaseModel):
@@ -57,7 +57,7 @@ class Tool(ToolBase):
     model_config = ConfigDict(from_attributes=True)
 
 class ToolWithCount(Tool):
-    dream_count: int = 0
+    app_count: int = 0
 
 class TagBase(BaseModel):
     name: str
@@ -70,47 +70,47 @@ class Tag(TagBase):
     model_config = ConfigDict(from_attributes=True)
 
 class TagWithCount(Tag):
-    dream_count: int = 0
+    app_count: int = 0
 
-# Dream Creator (for embedding in Dream)
-class DreamCreator(BaseModel):
+# App Creator (for embedding in App)
+class AppCreator(BaseModel):
     id: int
     username: str
     avatar: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
-# Dream Media
-class DreamMediaBase(BaseModel):
+# App Media
+class AppMediaBase(BaseModel):
     media_url: str
 
-class DreamMedia(DreamMediaBase):
+class AppMedia(AppMediaBase):
     id: int
-    dream_id: int
+    app_id: int
     model_config = ConfigDict(from_attributes=True)
 
-# Dream
-class DreamBase(BaseModel):
+# App
+class AppBase(BaseModel):
     title: Optional[str] = None
     prompt_text: Optional[str] = None
     prd_text: Optional[str] = None
     extra_specs: Optional[dict] = None
-    status: DreamStatus = DreamStatus.CONCEPT
+    status: AppStatus = AppStatus.CONCEPT
     app_url: Optional[str] = None
     youtube_url: Optional[str] = None
     is_agent_submitted: bool = False
     is_owner: bool = False
 
-class DreamCreate(DreamBase):
-    parent_dream_id: Optional[int] = None
+class AppCreate(AppBase):
+    parent_app_id: Optional[int] = None
     tool_ids: List[int] = []
     tag_ids: List[int] = []
 
-class DreamUpdate(BaseModel):
+class AppUpdate(BaseModel):
     title: Optional[str] = None
     prompt_text: Optional[str] = None
     prd_text: Optional[str] = None
     extra_specs: Optional[dict] = None
-    status: Optional[DreamStatus] = None
+    status: Optional[AppStatus] = None
     app_url: Optional[str] = None
     youtube_url: Optional[str] = None
     is_agent_submitted: Optional[bool] = None
@@ -118,16 +118,16 @@ class DreamUpdate(BaseModel):
     tool_ids: Optional[List[int]] = None
     tag_ids: Optional[List[int]] = None
 
-class Dream(DreamBase):
+class App(AppBase):
     id: int
     slug: str
     creator_id: int
-    parent_dream_id: Optional[int] = None
+    parent_app_id: Optional[int] = None
     created_at: datetime
-    media: List[DreamMedia] = []
+    media: List[AppMedia] = []
     tools: List[Tool] = []
     tags: List[Tag] = []
-    creator: Optional[DreamCreator] = None
+    creator: Optional[AppCreator] = None
     likes_count: int = 0
     comments_count: int = 0
     is_liked: bool = False
@@ -144,7 +144,7 @@ class ImplementationCreate(ImplementationBase):
 
 class Implementation(ImplementationBase):
     id: int
-    dream_id: int
+    app_id: int
     user_id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -158,7 +158,7 @@ class CommentCreate(CommentBase):
 
 class Comment(CommentBase):
     id: int
-    dream_id: int
+    app_id: int
     user_id: int
     created_at: datetime
     created_at: datetime
@@ -177,6 +177,10 @@ class CommentWithUser(Comment):
     user: Optional[CommentUser] = None
     model_config = ConfigDict(from_attributes=True)
 
+class CommentWithReplies(CommentWithUser):
+    replies: List["CommentWithReplies"] = []
+    model_config = ConfigDict(from_attributes=True)
+
 # Review
 class ReviewBase(BaseModel):
     score: float
@@ -187,7 +191,7 @@ class ReviewCreate(ReviewBase):
 
 class Review(ReviewBase):
     id: int
-    dream_id: int
+    app_id: int
     user_id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -195,7 +199,7 @@ class Review(ReviewBase):
 # Like
 class Like(BaseModel):
     id: int
-    dream_id: int
+    app_id: int
     user_id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -207,13 +211,13 @@ class CollectionBase(BaseModel):
     is_public: bool = True
 
 class CollectionCreate(CollectionBase):
-    dream_ids: List[int] = []
+    app_ids: List[int] = []
 
 class Collection(CollectionBase):
     id: int
     owner_id: int
     created_at: datetime
-    dreams: List[Dream] = []
+    apps: List[App] = []
     model_config = ConfigDict(from_attributes=True)
 
 # Notification
@@ -248,7 +252,7 @@ class PresignedUrlRequest(BaseModel):
     filename: str
     content_type: str
 
-class DreamPublic(BaseModel):
+class AppPublic(BaseModel):
     id: int
     title: Optional[str] = None
     slug: str
@@ -262,7 +266,7 @@ class OwnershipClaimCreate(BaseModel):
 
 class OwnershipClaim(BaseModel):
     id: int
-    dream_id: int
+    app_id: int
     claimant_id: int
     message: Optional[str] = None
     status: ClaimStatus
@@ -271,8 +275,12 @@ class OwnershipClaim(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class OwnershipClaimWithDetails(OwnershipClaim):
-    claimant: Optional[DreamCreator] = None
-    dream: Optional[DreamPublic] = None
+    claimant: Optional[AppCreator] = None
+    app: Optional[AppPublic] = None
+
+class OwnershipClaimResponse(OwnershipClaim):
+    """Response schema for ownership claim operations"""
+    pass
 
 
 # Feedback Schemas

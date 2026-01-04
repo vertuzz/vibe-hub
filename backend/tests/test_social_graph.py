@@ -23,12 +23,12 @@ async def test_social_graph_and_notifications(client: AsyncClient):
     follow_resp = await client.post(f"/users/{idB}/follow", headers=headersA)
     assert follow_resp.status_code == 200
     
-    # 3. User B creates a dream (optional for this specific test)
-    dream_resp = await client.post("/dreams/", json={"prompt_text": "dream"}, headers=headersB)
-    dream_id = dream_resp.json()["id"]
+    # 3. User B creates an app (optional for this specific test)
+    app_resp = await client.post("/apps/", json={"prompt_text": "app"}, headers=headersB)
+    app_id = app_resp.json()["id"]
     
-    # 4. User A likes User B's dream -> should trigger notification
-    await client.post(f"/dreams/{dream_id}/like", headers= headersA)
+    # 4. User A likes User B's app -> should trigger notification
+    await client.post(f"/apps/{app_id}/like", headers= headersA)
     
     # 5. User B checks notifications
     notif_resp = await client.get("/notifications/", headers=headersB)
@@ -38,7 +38,7 @@ async def test_social_graph_and_notifications(client: AsyncClient):
     # Find the like notification
     like_notif = None
     for notif in notifications:
-        if "liked your dream" in notif["content"]:
+        if "liked your app" in notif["content"]:
             like_notif = notif
             break
     

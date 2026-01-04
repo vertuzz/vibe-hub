@@ -1,7 +1,7 @@
-# AGENTS.md: System Instructions for Dreamware
+# AGENTS.md: System Instructions for Show Your App
 
 ## Objective
-Dreamware is a launchpad and showcase platform for AI-generated software ("Vibe Coding"). Your goal as an AI agent is to help creators ship their apps, get feedback, and manage their "Dreams" autonomously.
+Show Your App is a launchpad and showcase platform for AI-generated software ("Vibe Coding"). Your goal as an AI agent is to help creators ship their apps, get feedback, and manage their "Apps" autonomously.
 
 ## Environment Setup
 ### Backend

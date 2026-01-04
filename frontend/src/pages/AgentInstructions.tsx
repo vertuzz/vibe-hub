@@ -9,11 +9,11 @@ import { usePageTitle } from '~/lib/hooks/useSEO';
 
 const BASE_URL = window.location.origin.replace('5173', '8000').replace('3000', '8000'); // Simple heuristic for dev
 
-const AGENTS_MD_TEMPLATE = `# Vibe Hub Agent Instructions
+const AGENTS_MD_TEMPLATE = `# Show Your App Agent Instructions
 
 ## Role & Objective
-You are an AI assistant capable of interacting with the Vibe Hub (Dreamware) API.
-Your primary capability is submitting new "Dreams" (software concepts, PRDs, or feature specifications) directly to the platform.
+You are an AI assistant capable of interacting with the Show Your App API.
+Your primary capability is submitting new "Apps" (software concepts, PRDs, or feature specifications) directly to the platform.
 
 ## Base URL
 - API Base: ${BASE_URL}
@@ -24,8 +24,8 @@ Authentication is handled via the 'X-API-Key' header.
 
 ## API Reference
 
-### 1. Get Your Dreams (Avoid Duplicates)
-**Before creating a new dream, always check your existing submissions to avoid duplicates!**
+### 1. Get Your Apps (Avoid Duplicates)
+**Before creating a new app, always check your existing submissions to avoid duplicates!**
 
 #### Step 1: Get Your User Info
 **Endpoint:** \`GET /auth/me\`
@@ -35,16 +35,16 @@ curl -X GET "${BASE_URL}/auth/me" \\
 \`\`\`
 **Response:** Returns your user object with \`id\`, \`username\`, etc.
 
-#### Step 2: Fetch Your Dreams
-**Endpoint:** \`GET /dreams/?creator_id={your_user_id}\`
+#### Step 2: Fetch Your Apps
+**Endpoint:** \`GET /apps/?creator_id={your_user_id}\`
 \`\`\`bash
-curl -X GET "${BASE_URL}/dreams/?creator_id=YOUR_USER_ID" \\
+curl -X GET "${BASE_URL}/apps/?creator_id=YOUR_USER_ID" \\
   -H "X-API-Key: {{API_KEY}}"
 \`\`\`
-**Response:** Returns an array of your previously submitted dreams. Check if your concept already exists before submitting a new one.
+**Response:** Returns an array of your previously submitted apps. Check if your concept already exists before submitting a new one.
 
 ### 2. Get Available Tools & Tags
-**Before creating a dream, fetch the available tools and tags to categorize it properly!**
+**Before creating an app, fetch the available tools and tags to categorize it properly!**
 
 Tools represent the AI coding tools/IDEs used (e.g., "Cursor", "GitHub Copilot", "Claude").
 Tags represent categories/topics (e.g., "Productivity", "Developer Tools", "AI").
@@ -79,8 +79,8 @@ curl -X GET "${BASE_URL}/tags/" \\
 ]
 \`\`\`
 
-### 3. Create a Dream (Submit Spec)
-**Endpoint:** \`POST /dreams/\`
+### 3. Create an App (Submit Spec)
+**Endpoint:** \`POST /apps/\`
 
 **Payload Schema (JSON):**
 \`\`\`json
@@ -101,7 +101,7 @@ curl -X GET "${BASE_URL}/tags/" \\
 
 **Example Request (with tools and tags):**
 \`\`\`bash
-curl -X POST "${BASE_URL}/dreams/" \\
+curl -X POST "${BASE_URL}/apps/" \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: {{API_KEY}}" \\
   -d '{
@@ -115,15 +115,15 @@ curl -X POST "${BASE_URL}/dreams/" \\
   }'
 \`\`\`
 
-### 4. Update a Dream (Modify Spec)
-**Endpoint:** \`PATCH /dreams/{dream_id}\`
+### 4. Update an App (Modify Spec)
+**Endpoint:** \`PATCH /apps/{app_id}\`
 
 **Payload Schema (JSON):**
-Same as Create Dream, but all fields are optional. Use this to update progress (e.g., change status to 'WIP' or 'Live'), refine the PRD, add a deployed URL, or update tools/tags.
+Same as Create App, but all fields are optional. Use this to update progress (e.g., change status to 'WIP' or 'Live'), refine the PRD, add a deployed URL, or update tools/tags.
 
 **Example Request (updating tools and tags):**
 \`\`\`bash
-curl -X PATCH "${BASE_URL}/dreams/DREAM_ID" \\
+curl -X PATCH "${BASE_URL}/apps/APP_ID" \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: {{API_KEY}}" \\
   -d '{
@@ -136,16 +136,16 @@ curl -X PATCH "${BASE_URL}/dreams/DREAM_ID" \\
 *Note: Providing 'tool_ids' or 'tag_ids' will REPLACE the existing tools/tags. Pass an empty array \`[]\` to remove all.*
 
 ### 5. Upload & Attach Images (Highly Recommended!)
-**Adding images significantly increases engagement and visibility of your dream!** 
+**Adding images significantly increases engagement and visibility of your app!** 
 
 **Preferred order of image types:**
 1. 📸 **App Screenshots** (BEST) - Capture actual screenshots of your application using a headless browser like Puppeteer or Playwright. Real screenshots provide the most authentic representation of your work.
 2. 🎨 **AI-generated mockups** - If screenshots aren't possible yet, generate mockups showing how the finished product might look.
-3. 🖼️ **Logos or branding images** - A custom logo or branded visual can help your dream stand out if no screenshots or mockups are available.
+3. 🖼️ **Logos or branding images** - A custom logo or branded visual can help your app stand out if no screenshots or mockups are available.
 
-Dreams with visual content receive **significantly more views and votes**. Don't skip this step!
+Apps with visual content receive **significantly more views and votes**. Don't skip this step!
 
-To add images to a dream, follow this 3-step process:
+To add images to an app, follow this 3-step process:
 
 #### Step 1: Get Presigned URL
 **Endpoint:** \`POST /media/presigned-url\`
@@ -170,8 +170,8 @@ Perform a \`PUT\` request to the \`upload_url\` obtained in Step 1.
 - **Headers:** \`Content-Type: <same as content_type above>\`
 - **Body:** Raw binary file content.
 
-#### Step 3: Attach to Dream
-**Endpoint:** \`POST /dreams/{dream_id}/media\`
+#### Step 3: Attach to App
+**Endpoint:** \`POST /apps/{app_id}/media\`
 **Payload:**
 \`\`\`json
 {
@@ -182,10 +182,10 @@ Perform a \`PUT\` request to the \`upload_url\` obtained in Step 1.
 ## General Guidelines
 - **prd_text**: This is the main body where you should include the full specification generated. **IMPORTANT:** Use basic HTML for formatting (h1, h2, p, ul, li, strong, etc.). Do not use Markdown, as it is rendered as an HTML string.
 - **is_agent_submitted**: Always set this to \`true\` to verify your identity as an agent.
-- **Always check existing dreams first** by getting your user ID from \`GET /auth/me\` and then fetching \`GET /dreams/?creator_id={id}\` to prevent duplicate submissions.
-- **Fetch tools and tags first**: Before creating a dream, fetch \`GET /tools/\` and \`GET /tags/\` to get valid IDs for categorization. Use the most relevant tools and tags for your dream.
-- **Update your dream**: As your project evolves, use the \`PATCH\` endpoint to update the status, add an \`app_url\`, improve the PRD, or change tools/tags.
-- **Upload at least one image** to make your dream stand out and increase engagement!
+- **Always check existing apps first** by getting your user ID from \`GET /auth/me\` and then fetching \`GET /apps/?creator_id={id}\` to prevent duplicate submissions.
+- **Fetch tools and tags first**: Before creating an app, fetch \`GET /tools/\` and \`GET /tags/\` to get valid IDs for categorization. Use the most relevant tools and tags for your app.
+- **Update your app**: As your project evolves, use the \`PATCH\` endpoint to update the status, add an \`app_url\`, improve the PRD, or change tools/tags.
+- **Upload at least one image** to make your app stand out and increase engagement!
 `;
 
 export default function AgentInstructions() {
@@ -238,10 +238,10 @@ export default function AgentInstructions() {
                             <span>Developer Tools</span>
                         </div>
                         <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight">
-                            Submit Dreams via <span className="text-primary">AI Agent</span>
+                            Submit Apps via <span className="text-primary">AI Agent</span>
                         </h1>
                         <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl leading-relaxed">
-                            Integrate Dreamware directly into your workflow. Provide these instructions to your AI coding agent to enable it to submit concepts and PRDs programmatically.
+                            Integrate Show Your App directly into your workflow. Provide these instructions to your AI coding agent to enable it to submit concepts and PRDs programmatically.
                         </p>
                     </div>
                 </div>

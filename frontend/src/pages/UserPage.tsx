@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { userService } from '~/lib/services/user-service';
-import { dreamService } from '~/lib/services/dream-service';
-import type { User, Dream } from '~/lib/types';
-import DreamCard from '~/components/dreams/DreamCard';
+import { appService } from '~/lib/services/app-service';
+import type { User, App } from '~/lib/types';
+import AppCard from '~/components/apps/AppCard';
 import NotificationList from '~/components/notifications/NotificationList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Button } from '~/components/ui/button';
@@ -16,8 +16,8 @@ import { useSEO } from '~/lib/hooks/useSEO';
 export default function UserPage() {
     const { username } = useParams<{ username: string }>();
     const [user, setUser] = useState<User | null>(null);
-    const [dreams, setDreams] = useState<Dream[]>([]);
-    const [likedDreams, setLikedDreams] = useState<Dream[]>([]);
+    const [apps, setApps] = useState<App[]>([]);
+    const [likedApps, setLikedApps] = useState<App[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isFollowing, setIsFollowing] = useState(false);
@@ -27,7 +27,7 @@ export default function UserPage() {
     // SEO - Dynamic user page title
     useSEO({
         title: user ? `@${user.username}` : username ? `@${username}` : 'User Profile',
-        description: user?.bio || `Explore dreams and creations by @${username} on Dreamware.`,
+        description: user?.bio || `Explore apps and creations by @${username} on Show Your App.`,
         url: `/users/${username}`,
     });
 
@@ -41,12 +41,12 @@ export default function UserPage() {
                 setUser(userData);
 
                 if (userData?.id) {
-                    const [userDreams, userLikedDreams] = await Promise.all([
-                        dreamService.getDreams({ creator_id: userData.id }),
-                        dreamService.getDreams({ liked_by_user_id: userData.id })
+                    const [userApps, userLikedApps] = await Promise.all([
+                        appService.getApps({ creator_id: userData.id }),
+                        appService.getApps({ liked_by_user_id: userData.id })
                     ]);
-                    setDreams(userDreams);
-                    setLikedDreams(userLikedDreams);
+                    setApps(userApps);
+                    setLikedApps(userLikedApps);
                 }
             } catch (err) {
                 console.error('Failed to fetch user data:', err);
@@ -201,13 +201,13 @@ export default function UserPage() {
                 </div>
 
                 {/* Tabs & Content */}
-                <Tabs defaultValue="dreams" className="space-y-8">
+                <Tabs defaultValue="apps" className="space-y-8">
                     <TabsList className="bg-transparent border-b border-gray-200 w-full justify-start h-auto p-0 gap-8">
                         <TabsTrigger
-                            value="dreams"
+                            value="apps"
                             className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3 px-1 text-base font-semibold"
                         >
-                            Dreams <span className="ml-2 text-sm text-gray-400 font-normal">{dreams.length}</span>
+                            Apps <span className="ml-2 text-sm text-gray-400 font-normal">{apps.length}</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="collections"
@@ -219,7 +219,7 @@ export default function UserPage() {
                             value="likes"
                             className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3 px-1 text-base font-semibold"
                         >
-                            Likes <span className="ml-2 text-sm text-gray-400 font-normal">{likedDreams.length}</span>
+                            Likes <span className="ml-2 text-sm text-gray-400 font-normal">{likedApps.length}</span>
                         </TabsTrigger>
                         {currentUser?.id === user.id && (
                             <TabsTrigger
@@ -231,17 +231,17 @@ export default function UserPage() {
                         )}
                     </TabsList>
 
-                    <TabsContent value="dreams" className="pt-2">
-                        {dreams.length > 0 ? (
+                    <TabsContent value="apps" className="pt-2">
+                        {apps.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {dreams.map((dream) => (
-                                    <DreamCard key={dream.id} dream={dream} />
+                                {apps.map((app) => (
+                                    <AppCard key={app.id} app={app} />
                                 ))}
                             </div>
                         ) : (
                             <div className="bg-white rounded-3xl p-12 text-center border border-dashed border-gray-200">
-                                <h3 className="text-xl font-bold text-gray-900 mb-2">No dreams yet</h3>
-                                <p className="text-gray-500 mb-6">@{user.username} hasn't shared any dreams yet.</p>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">No apps yet</h3>
+                                <p className="text-gray-500 mb-6">@{user.username} hasn't shared any apps yet.</p>
                             </div>
                         )}
                     </TabsContent>
@@ -254,16 +254,16 @@ export default function UserPage() {
                     </TabsContent>
 
                     <TabsContent value="likes" className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        {likedDreams.length > 0 ? (
+                        {likedApps.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {likedDreams.map((dream) => (
-                                    <DreamCard key={dream.id} dream={dream} />
+                                {likedApps.map((app) => (
+                                    <AppCard key={app.id} app={app} />
                                 ))}
                             </div>
                         ) : (
                             <div className="bg-white rounded-3xl p-12 text-center border border-dashed border-gray-200">
                                 <h3 className="text-xl font-bold text-gray-900 mb-2">No likes yet</h3>
-                                <p className="text-gray-500">@{user.username} hasn't liked any dreams yet.</p>
+                                <p className="text-gray-500">@{user.username} hasn't liked any apps yet.</p>
                             </div>
                         )}
                     </TabsContent>

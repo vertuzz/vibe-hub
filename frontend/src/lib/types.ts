@@ -30,13 +30,13 @@ export interface UserUpdate {
     location?: string;
 }
 
-export interface DreamCreator {
+export interface AppCreator {
     id: number;
     username: string;
     avatar?: string;
 }
 
-export interface Dream {
+export interface App {
     id: number;
     slug: string;
     title: string;
@@ -49,12 +49,12 @@ export interface Dream {
     is_agent_submitted: boolean;
     is_owner: boolean;
     creator_id: number;
-    creator?: DreamCreator;
+    creator?: AppCreator;
     created_at: string;
     updated_at?: string;
     tools?: Tool[];
     tags?: Tag[];
-    media?: DreamMedia[];
+    media?: AppMedia[];
     likes_count?: number;
     comments_count?: number;
     is_liked?: boolean;
@@ -74,20 +74,20 @@ export interface Tag {
 }
 
 export interface TagWithCount extends Tag {
-    dream_count: number;
+    app_count: number;
 }
 
 export interface ToolWithCount extends Tool {
-    dream_count: number;
+    app_count: number;
 }
 
-export interface DreamMedia {
+export interface AppMedia {
     id: number;
-    dream_id: number;
+    app_id: number;
     media_url: string;
 }
 
-export interface DreamCreate {
+export interface AppCreate {
     title: string;
     prompt_text?: string;
     prd_text?: string;
@@ -103,19 +103,19 @@ export interface DreamCreate {
 
 export interface OwnershipClaim {
     id: number;
-    dream_id: number;
+    app_id: number;
     claimant_id: number;
     message?: string;
     status: 'pending' | 'approved' | 'rejected';
     created_at: string;
     resolved_at?: string;
-    claimant?: DreamCreator;
-    dream?: Dream;
+    claimant?: AppCreator;
+    app?: App;
 }
 
 export interface Comment {
     id: number;
-    dream_id: number;
+    app_id: number;
     user_id: number;
     content: string;
     created_at: string;

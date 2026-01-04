@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy import select
 from app.database import AsyncSessionLocal, engine
-from app.models import Tool, Tag, User, Dream, DreamMedia, Comment, Like, DreamStatus
+from app.models import Tool, Tag, User, App, AppMedia, Comment, Like, AppStatus
 from app.core.security import get_password_hash, generate_api_key
 from app.utils import slugify
 
@@ -34,7 +34,7 @@ TAGS = [
 USERS = [
     {
         "username": "admin",
-        "email": "admin@dreamware.com",
+        "email": "admin@show-your.app",
         "password": "password123",
         "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=admin",
         "is_admin": True,
@@ -42,14 +42,14 @@ USERS = [
     },
     {
         "username": "vibe_master",
-        "email": "vibe@dreamware.com",
+        "email": "vibe@show-your.app",
         "password": "password123",
         "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=vibe",
         "reputation_score": 85.5
     },
     {
         "username": "agent_alpha",
-        "email": "agent@dreamware.com",
+        "email": "agent@show-your.app",
         "password": "password123",
         "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=alpha",
         "reputation_score": 50.0,
@@ -57,19 +57,19 @@ USERS = [
     },
     {
         "username": "early_bird",
-        "email": "tester@dreamware.com",
+        "email": "tester@show-your.app",
         "password": "password123",
         "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=bird",
         "reputation_score": 12.0
     }
 ]
 
-DREAMS = [
+APPS = [
     {
         "title": "Neon Dreams Dashboard",
         "creator": "admin",
-        "description": "A futuristic dashboard for tracking dream metrics. Built with Cursor and Shadcn UI.",
-        "status": DreamStatus.LIVE,
+        "description": "A futuristic dashboard for tracking app metrics. Built with Cursor and Shadcn UI.",
+        "status": AppStatus.LIVE,
         "app_url": "https://neon-dreams.vercel.app",
         "tags": ["Cyberpunk", "Dashboard", "Dark Mode"],
         "tools": ["Cursor", "v0"],
@@ -79,7 +79,7 @@ DREAMS = [
         "title": "AI Snake Game",
         "creator": "agent_alpha",
         "description": "A classic snake game generated entirely by Replit Agent. Minimalist and fun.",
-        "status": DreamStatus.LIVE,
+        "status": AppStatus.LIVE,
         "app_url": "https://ai-snake.replit.app",
         "is_agent_submitted": True,
         "tags": ["Minimalist", "Retro"],
@@ -90,7 +90,7 @@ DREAMS = [
         "title": "Vibe Coder Portfolio",
         "creator": "vibe_master",
         "description": "Showcasing the philosophy of vibe coding through a brutalist design.",
-        "status": DreamStatus.WIP,
+        "status": AppStatus.WIP,
         "tags": ["Brutalist", "Portfolio", "Dream Coding"],
         "tools": ["Windsurf", "Claude"],
         "media": ["https://images.unsplash.com/photo-1550745165-9bc0b252726f"]
@@ -99,7 +99,7 @@ DREAMS = [
         "title": "SaaS Starter Kit",
         "creator": "early_bird",
         "description": "Everything you need to launch your next AI app in minutes.",
-        "status": DreamStatus.CONCEPT,
+        "status": AppStatus.CONCEPT,
         "tags": ["SaaS", "Next.js", "Tailwind CSS"],
         "tools": ["Cursor", "GPT"]
     }
@@ -160,57 +160,57 @@ async def seed_data():
 
         await session.flush()
 
-        print("\nSeeding dreams...")
-        created_dreams = []
-        for dream_data in DREAMS:
-            result = await session.execute(select(Dream).where(Dream.title == dream_data["title"]))
-            dream = result.scalar_one_or_none()
-            if not dream:
-                creator = user_map[dream_data["creator"]]
-                dream = Dream(
-                    title=dream_data["title"],
+        print("\nSeeding apps...")
+        created_apps = []
+        for app_data in APPS:
+            result = await session.execute(select(App).where(App.title == app_data["title"]))
+            app = result.scalar_one_or_none()
+            if not app:
+                creator = user_map[app_data["creator"]]
+                app = App(
+                    title=app_data["title"],
                     creator_id=creator.id,
-                    prompt_text=dream_data["description"],
-                    status=dream_data["status"],
-                    app_url=dream_data.get("app_url"),
-                    is_agent_submitted=dream_data.get("is_agent_submitted", False),
-                    slug=slugify(dream_data["title"])
+                    prompt_text=app_data["description"],
+                    status=app_data["status"],
+                    app_url=app_data.get("app_url"),
+                    is_agent_submitted=app_data.get("is_agent_submitted", False),
+                    slug=slugify(app_data["title"])
                 )
                 
                 # Add tags
-                for tag_name in dream_data.get("tags", []):
+                for tag_name in app_data.get("tags", []):
                     if tag_name in tag_map:
-                        dream.tags.append(tag_map[tag_name])
+                        app.tags.append(tag_map[tag_name])
                 
                 # Add tools
-                for tool_name in dream_data.get("tools", []):
+                for tool_name in app_data.get("tools", []):
                     if tool_name in tool_map:
-                        dream.tools.append(tool_map[tool_name])
+                        app.tools.append(tool_map[tool_name])
                 
-                session.add(dream)
-                await session.flush() # Get dream ID
+                session.add(app)
+                await session.flush() # Get app ID
                 
                 # Add media
-                for media_url in dream_data.get("media", []):
-                    media = DreamMedia(dream_id=dream.id, media_url=media_url)
+                for media_url in app_data.get("media", []):
+                    media = AppMedia(app_id=app.id, media_url=media_url)
                     session.add(media)
                 
-                print(f"Added dream: {dream_data['title']}")
+                print(f"Added app: {app_data['title']}")
             
-            created_dreams.append(dream)
+            created_apps.append(app)
 
         print("\nSeeding interactions (comments and likes)...")
         all_users = list(user_map.values())
-        for dream in created_dreams:
+        for app in created_apps:
             # Add some likes
             like_count = random.randint(1, len(all_users))
             likers = random.sample(all_users, like_count)
             for liker in likers:
                 result = await session.execute(
-                    select(Like).where(Like.dream_id == dream.id, Like.user_id == liker.id)
+                    select(Like).where(Like.app_id == app.id, Like.user_id == liker.id)
                 )
                 if not result.scalar_one_or_none():
-                    like = Like(dream_id=dream.id, user_id=liker.id)
+                    like = Like(app_id=app.id, user_id=liker.id)
                     session.add(like)
 
             # Add some comments
@@ -219,7 +219,7 @@ async def seed_data():
                 commenter = random.choice(all_users)
                 content = random.choice(COMMENTS)
                 comment = Comment(
-                    dream_id=dream.id,
+                    app_id=app.id,
                     user_id=commenter.id,
                     content=content
                 )

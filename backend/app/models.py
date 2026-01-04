@@ -9,28 +9,28 @@ class Base(DeclarativeBase):
     pass
 
 # Association tables
-dream_tools = Table(
-    "dream_tools",
+app_tools = Table(
+    "app_tools",
     Base.metadata,
-    Column("dream_id", ForeignKey("dreams.id"), primary_key=True),
+    Column("app_id", ForeignKey("apps.id"), primary_key=True),
     Column("tool_id", ForeignKey("tools.id"), primary_key=True),
 )
 
-dream_tags = Table(
-    "dream_tags",
+app_tags = Table(
+    "app_tags",
     Base.metadata,
-    Column("dream_id", ForeignKey("dreams.id"), primary_key=True),
+    Column("app_id", ForeignKey("apps.id"), primary_key=True),
     Column("tag_id", ForeignKey("tags.id"), primary_key=True),
 )
 
-collection_dreams = Table(
-    "collection_dreams",
+collection_apps = Table(
+    "collection_apps",
     Base.metadata,
     Column("collection_id", ForeignKey("collections.id"), primary_key=True),
-    Column("dream_id", ForeignKey("dreams.id"), primary_key=True),
+    Column("app_id", ForeignKey("apps.id"), primary_key=True),
 )
 
-class DreamStatus(str, enum.Enum):
+class AppStatus(str, enum.Enum):
     CONCEPT = "Concept"
     WIP = "WIP"
     LIVE = "Live"
@@ -73,7 +73,7 @@ class User(Base):
     github_id: Mapped[Optional[str]] = mapped_column(String(100), unique=True, index=True, nullable=True)
     api_key: Mapped[Optional[str]] = mapped_column(String(255), unique=True, index=True, nullable=True)
 
-    dreams: Mapped[List["Dream"]] = relationship("Dream", back_populates="creator")
+    apps: Mapped[List["App"]] = relationship("App", back_populates="creator")
     comments: Mapped[List["Comment"]] = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
     reviews: Mapped[List["Review"]] = relationship("Review", back_populates="user", cascade="all, delete-orphan")
     likes: Mapped[List["Like"]] = relationship("Like", back_populates="user", cascade="all, delete-orphan")
@@ -115,26 +115,26 @@ class Tool(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(50), unique=True, index=True)
 
-    dreams: Mapped[List["Dream"]] = relationship("Dream", secondary=dream_tools, back_populates="tools")
+    apps: Mapped[List["App"]] = relationship("App", secondary=app_tools, back_populates="tools")
 
 class Tag(Base):
     __tablename__ = "tags"
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     
-    dreams: Mapped[List["Dream"]] = relationship("Dream", secondary=dream_tags, back_populates="tags")
+    apps: Mapped[List["App"]] = relationship("App", secondary=app_tags, back_populates="tags")
 
-class DreamMedia(Base):
-    __tablename__ = "dream_media"
+class AppMedia(Base):
+    __tablename__ = "app_media"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    dream_id: Mapped[int] = mapped_column(ForeignKey("dreams.id"), index=True)
+    app_id: Mapped[int] = mapped_column(ForeignKey("apps.id"), index=True)
     media_url: Mapped[str] = mapped_column(String(512))
     
-    dream: Mapped["Dream"] = relationship("Dream", back_populates="media")
+    app: Mapped["App"] = relationship("App", back_populates="media")
 
-class Dream(Base):
-    __tablename__ = "dreams"
+class App(Base):
+    __tablename__ = "apps"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     creator_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
@@ -145,7 +145,7 @@ class Dream(Base):
     prd_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     extra_specs: Mapped[Optional[dict]] = mapped_column(JSON().with_variant(postgresql.JSONB, "postgresql"), nullable=True)
     
-    # New fields for Dreamware v2.0
+    # New fields for v2.0
     app_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     youtube_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     is_agent_submitted: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -153,36 +153,36 @@ class Dream(Base):
     is_owner: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     
     # Lineage
-    parent_dream_id: Mapped[Optional[int]] = mapped_column(ForeignKey("dreams.id"), nullable=True, index=True)
+    parent_app_id: Mapped[Optional[int]] = mapped_column(ForeignKey("apps.id"), nullable=True, index=True)
     
-    status: Mapped[DreamStatus] = mapped_column(Enum(DreamStatus), default=DreamStatus.CONCEPT, index=True)
+    status: Mapped[AppStatus] = mapped_column(Enum(AppStatus), default=AppStatus.CONCEPT, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     # Relationships
-    creator: Mapped["User"] = relationship("User", back_populates="dreams")
-    media: Mapped[List["DreamMedia"]] = relationship("DreamMedia", back_populates="dream", cascade="all, delete-orphan")
-    tools: Mapped[List["Tool"]] = relationship("Tool", secondary=dream_tools, back_populates="dreams")
-    tags: Mapped[List["Tag"]] = relationship("Tag", secondary=dream_tags, back_populates="dreams")
-    comments: Mapped[List["Comment"]] = relationship("Comment", back_populates="dream", cascade="all, delete-orphan")
-    reviews: Mapped[List["Review"]] = relationship("Review", back_populates="dream", cascade="all, delete-orphan")
-    likes: Mapped[List["Like"]] = relationship("Like", back_populates="dream", cascade="all, delete-orphan")
-    implementations: Mapped[List["Implementation"]] = relationship("Implementation", back_populates="dream", cascade="all, delete-orphan")
+    creator: Mapped["User"] = relationship("User", back_populates="apps")
+    media: Mapped[List["AppMedia"]] = relationship("AppMedia", back_populates="app", cascade="all, delete-orphan")
+    tools: Mapped[List["Tool"]] = relationship("Tool", secondary=app_tools, back_populates="apps")
+    tags: Mapped[List["Tag"]] = relationship("Tag", secondary=app_tags, back_populates="apps")
+    comments: Mapped[List["Comment"]] = relationship("Comment", back_populates="app", cascade="all, delete-orphan")
+    reviews: Mapped[List["Review"]] = relationship("Review", back_populates="app", cascade="all, delete-orphan")
+    likes: Mapped[List["Like"]] = relationship("Like", back_populates="app", cascade="all, delete-orphan")
+    implementations: Mapped[List["Implementation"]] = relationship("Implementation", back_populates="app", cascade="all, delete-orphan")
     
-    parent: Mapped[Optional["Dream"]] = relationship("Dream", remote_side=[id], back_populates="forks")
-    forks: Mapped[List["Dream"]] = relationship("Dream", back_populates="parent")
+    parent: Mapped[Optional["App"]] = relationship("App", remote_side=[id], back_populates="forks")
+    forks: Mapped[List["App"]] = relationship("App", back_populates="parent")
 
 class Implementation(Base):
     __tablename__ = "implementations"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    dream_id: Mapped[int] = mapped_column(ForeignKey("dreams.id"), index=True)
+    app_id: Mapped[int] = mapped_column(ForeignKey("apps.id"), index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     url: Mapped[str] = mapped_column(String(512), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_official: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
-    dream: Mapped["Dream"] = relationship("Dream", back_populates="implementations")
+    app: Mapped["App"] = relationship("App", back_populates="implementations")
     user: Mapped["User"] = relationship("User", back_populates="implementations")
 
 class ClaimStatus(str, enum.Enum):
@@ -194,21 +194,21 @@ class OwnershipClaim(Base):
     __tablename__ = "ownership_claims"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    dream_id: Mapped[int] = mapped_column(ForeignKey("dreams.id"), index=True)
+    app_id: Mapped[int] = mapped_column(ForeignKey("apps.id"), index=True)
     claimant_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     status: Mapped[ClaimStatus] = mapped_column(Enum(ClaimStatus), default=ClaimStatus.PENDING)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    dream: Mapped["Dream"] = relationship("Dream")
+    app: Mapped["App"] = relationship("App")
     claimant: Mapped["User"] = relationship("User")
 
 class Comment(Base):
     __tablename__ = "comments"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    dream_id: Mapped[int] = mapped_column(ForeignKey("dreams.id"), index=True)
+    app_id: Mapped[int] = mapped_column(ForeignKey("apps.id"), index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     content: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
@@ -216,7 +216,7 @@ class Comment(Base):
     # Counter cache for performance
     score: Mapped[int] = mapped_column(default=0)
 
-    dream: Mapped["Dream"] = relationship("Dream", back_populates="comments")
+    app: Mapped["App"] = relationship("App", back_populates="comments")
     user: Mapped["User"] = relationship("User", back_populates="comments")
     votes: Mapped[List["CommentVote"]] = relationship("CommentVote", back_populates="comment", cascade="all, delete-orphan")
     
@@ -228,27 +228,27 @@ class Review(Base):
     __tablename__ = "reviews"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    dream_id: Mapped[int] = mapped_column(ForeignKey("dreams.id"), index=True)
+    app_id: Mapped[int] = mapped_column(ForeignKey("apps.id"), index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     score: Mapped[float] = mapped_column(Float)
     comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
-    dream: Mapped["Dream"] = relationship("Dream", back_populates="reviews")
+    app: Mapped["App"] = relationship("App", back_populates="reviews")
     user: Mapped["User"] = relationship("User", back_populates="reviews")
 
 class Like(Base):
     __tablename__ = "likes"
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    dream_id: Mapped[int] = mapped_column(ForeignKey("dreams.id"), index=True)
+    app_id: Mapped[int] = mapped_column(ForeignKey("apps.id"), index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
-    dream: Mapped["Dream"] = relationship("Dream", back_populates="likes")
+    app: Mapped["App"] = relationship("App", back_populates="likes")
     user: Mapped["User"] = relationship("User", back_populates="likes")
 
-    # Ensure a user can only like a dream once
-    __table_args__ = (UniqueConstraint("dream_id", "user_id", name="uq_dream_like"),)
+    # Ensure a user can only like an app once
+    __table_args__ = (UniqueConstraint("app_id", "user_id", name="uq_app_like"),)
 
 class CommentVote(Base):
     __tablename__ = "comment_votes"
@@ -274,7 +274,7 @@ class Collection(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     owner: Mapped["User"] = relationship("User", back_populates="collections")
-    dreams: Mapped[List["Dream"]] = relationship("Dream", secondary=collection_dreams)
+    apps: Mapped[List["App"]] = relationship("App", secondary=collection_apps)
 
 class Notification(Base):
     __tablename__ = "notifications"

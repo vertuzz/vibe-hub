@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { dreamService } from '~/lib/services/dream-service';
+import { appService } from '~/lib/services/app-service';
 import { toolService } from '~/lib/services/tool-service';
 import { tagService } from '~/lib/services/tag-service';
 import { mediaService } from '~/lib/services/media-service';
@@ -10,19 +10,19 @@ import Header from '~/components/layout/Header';
 import { usePageTitle } from '~/lib/hooks/useSEO';
 
 // Sub-components
-import BasicsSection from '~/components/dreams/create/BasicsSection';
-import VisualsSection from '~/components/dreams/create/VisualsSection';
-import DetailsSection from '~/components/dreams/create/DetailsSection';
-import DreamPreview from '~/components/dreams/create/DreamPreview';
-import StatusSelector from '~/components/dreams/create/StatusSelector';
-import OwnershipSelector from '~/components/dreams/create/OwnershipSelector';
-import type { Dream } from '~/lib/types';
+import BasicsSection from '~/components/apps/create/BasicsSection';
+import VisualsSection from '~/components/apps/create/VisualsSection';
+import DetailsSection from '~/components/apps/create/DetailsSection';
+import AppPreview from '~/components/apps/create/AppPreview';
+import StatusSelector from '~/components/apps/create/StatusSelector';
+import OwnershipSelector from '~/components/apps/create/OwnershipSelector';
+import type { App } from '~/lib/types';
 
-export default function CreateDream() {
+export default function CreateApp() {
     const navigate = useNavigate();
 
     // SEO
-    usePageTitle('Submit a Dream');
+    usePageTitle('Submit an App');
 
     // Form State
     const [title, setTitle] = useState('');
@@ -30,7 +30,7 @@ export default function CreateDream() {
     const [youtubeUrl, setYoutubeUrl] = useState('');
     const [tagline, setTagline] = useState('');
     const [prdText, setPrdText] = useState('');
-    const [status, setStatus] = useState<Dream['status']>('Concept');
+    const [status, setStatus] = useState<App['status']>('Concept');
     const [isOwner, setIsOwner] = useState(false);
 
     // Selection state
@@ -100,8 +100,8 @@ export default function CreateDream() {
         setError(null);
 
         try {
-            // 1. Create the Dream
-            const newDream = await dreamService.createDream({
+            // 1. Create the App
+            const newApp = await appService.createApp({
                 title,
                 prompt_text: tagline,
                 prd_text: prdText,
@@ -120,14 +120,14 @@ export default function CreateDream() {
                 const uploadPromises = files.map(async (file) => {
                     const { upload_url, download_url } = await mediaService.getPresignedUrl(file.name, file.type);
                     await mediaService.uploadFile(file, upload_url);
-                    await mediaService.linkMediaToDream(newDream.id, download_url);
+                    await mediaService.linkMediaToApp(newApp.id, download_url);
                 });
 
                 await Promise.all(uploadPromises);
             }
 
-            // 3. Redirect to the new dream page
-            navigate(`/dreams/${newDream.slug}`);
+            // 3. Redirect to the new app page
+            navigate(`/apps/${newApp.slug}`);
         } catch (err: any) {
             console.error('Submission failed:', err);
             setError(err.response?.data?.detail || 'Something went wrong during submission. Please try again.');
@@ -156,7 +156,7 @@ export default function CreateDream() {
                                 <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                                 <span>Back</span>
                             </button>
-                            <h1 className="text-slate-900 dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-tight">Submit a new Dream</h1>
+                            <h1 className="text-slate-900 dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-tight">Submit a new App</h1>
                             <p className="text-slate-500 dark:text-slate-400 text-base md:text-lg">Share your AI-generated masterpiece with the world.</p>
                         </div>
 
@@ -226,7 +226,7 @@ export default function CreateDream() {
                                     </>
                                 ) : (
                                     <>
-                                        <span>Publish Dream</span>
+                                        <span>Publish App</span>
                                         <span className="material-symbols-outlined text-[20px]">rocket_launch</span>
                                     </>
                                 )}
@@ -236,7 +236,7 @@ export default function CreateDream() {
 
                     {/* RIGHT COLUMN: Sticky Preview */}
                     <div className="hidden lg:block lg:col-span-4">
-                        <DreamPreview
+                        <AppPreview
                             title={title}
                             tagline={tagline}
                             previews={previews}

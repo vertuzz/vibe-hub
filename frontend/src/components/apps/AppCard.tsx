@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
-import type { Dream } from '~/lib/types';
+import type { App } from '~/lib/types';
 
-interface DreamCardProps {
-  dream: Dream;
+interface AppCardProps {
+  app: App;
   aspectRatio?: 'square' | 'video' | 'portrait' | 'landscape';
-  onLike?: (dream: Dream) => void;
+  onLike?: (app: App) => void;
 }
 
 // Aspect ratio classes for masonry variety
@@ -16,7 +16,7 @@ const aspectRatioClasses = {
 };
 
 // Status badge component
-function StatusBadge({ status }: { status: Dream['status'] }) {
+function StatusBadge({ status }: { status: App['status'] }) {
   if (status === 'Live') {
     return (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200 shadow-sm backdrop-blur-md">
@@ -50,29 +50,29 @@ function formatCount(count: number | undefined): string {
   return count.toString();
 }
 
-// Default placeholder image for dreams without media
-const placeholderImage = '/placeholder-dream.png';
+// Default placeholder image for apps without media
+const placeholderImage = '/placeholder-app.png';
 
-export default function DreamCard({ dream, aspectRatio = 'landscape', onLike }: DreamCardProps) {
+export default function AppCard({ app, aspectRatio = 'landscape', onLike }: AppCardProps) {
   // Get the first media image or use a placeholder
-  const imageUrl = dream.media?.[0]?.media_url || placeholderImage;
+  const imageUrl = app.media?.[0]?.media_url || placeholderImage;
 
-  const creatorName = dream.creator?.username || `user_${dream.creator_id}`;
-  const creatorAvatar = dream.creator?.avatar;
+  const creatorName = app.creator?.username || `user_${app.creator_id}`;
+  const creatorAvatar = app.creator?.avatar;
 
   return (
     <div className="break-inside-avoid mb-6 group cursor-pointer">
-      <Link to={`/dreams/${dream.slug || dream.id}`}>
+      <Link to={`/apps/${app.slug || app.id}`}>
         <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 dark:border-gray-700">
           {/* Image Section */}
           <div className={`relative ${aspectRatioClasses[aspectRatio]} w-full overflow-hidden`}>
             <img
               src={imageUrl}
-              alt={dream.title || 'Dream'}
+              alt={app.title || 'App'}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
             <div className="absolute top-3 right-3">
-              <StatusBadge status={dream.status} />
+              <StatusBadge status={app.status} />
             </div>
           </div>
 
@@ -80,11 +80,11 @@ export default function DreamCard({ dream, aspectRatio = 'landscape', onLike }: 
           <div className="p-4">
             <div className="flex justify-between items-start mb-2">
               <h3 className="font-bold text-lg text-gray-900 dark:text-white leading-tight group-hover:text-primary transition-colors">
-                {dream.title || 'Untitled Dream'}
+                {app.title || 'Untitled App'}
               </h3>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-4">
-              {dream.prompt_text || 'No description available'}
+              {app.prompt_text || 'No description available'}
             </p>
 
             {/* Footer */}
@@ -113,19 +113,19 @@ export default function DreamCard({ dream, aspectRatio = 'landscape', onLike }: 
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    onLike?.(dream);
+                    onLike?.(app);
                   }}
-                  className={`flex items-center gap-1 transition-colors ${dream.is_liked
+                  className={`flex items-center gap-1 transition-colors ${app.is_liked
                     ? 'text-rose-500 hover:text-rose-600'
                     : 'hover:text-red-500'
                     }`}
                 >
-                  <span className={`material-symbols-outlined text-[16px] ${dream.is_liked ? 'filled' : ''}`}>favorite</span>
-                  <span className="text-xs font-medium">{formatCount(dream.likes_count)}</span>
+                  <span className={`material-symbols-outlined text-[16px] ${app.is_liked ? 'filled' : ''}`}>favorite</span>
+                  <span className="text-xs font-medium">{formatCount(app.likes_count)}</span>
                 </button>
                 <div className="flex items-center gap-1 hover:text-primary transition-colors">
                   <span className="material-symbols-outlined text-[16px]">chat_bubble</span>
-                  <span className="text-xs font-medium">{formatCount(dream.comments_count)}</span>
+                  <span className="text-xs font-medium">{formatCount(app.comments_count)}</span>
                 </div>
               </div>
             </div>

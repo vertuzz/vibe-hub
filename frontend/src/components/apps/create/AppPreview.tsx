@@ -1,6 +1,6 @@
 import type { Tool, Tag } from '~/lib/types';
 
-interface DreamPreviewProps {
+interface AppPreviewProps {
     title: string;
     tagline: string;
     previews: string[];
@@ -9,14 +9,14 @@ interface DreamPreviewProps {
     coverImage?: string;
 }
 
-export default function DreamPreview({
+export default function AppPreview({
     title,
     tagline,
     previews,
     selectedTools,
     selectedTags,
     coverImage
-}: DreamPreviewProps) {
+}: AppPreviewProps) {
     // Determine which image to show
     // Priority: 1. New upload (previews), 2. Existing cover image, 3. None
     const displayImage = previews.length > 0
@@ -46,7 +46,7 @@ export default function DreamPreview({
                 <div className="p-5 flex flex-col gap-3">
                     <div className="flex justify-between items-start">
                         <div className="flex-1">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight mb-1 truncate">{title || 'Untitled Dream'}</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight mb-1 truncate">{title || 'Untitled App'}</h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 min-h-[40px]">{tagline || 'Your tagline here...'}</p>
                         </div>
 

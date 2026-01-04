@@ -1,7 +1,7 @@
 import api from '../api';
-import type { Dream, DreamCreate, Comment, CommentCreate, Tag, Tool, OwnershipClaim } from '../types';
+import type { App, AppCreate, Comment, CommentCreate, Tag, Tool, OwnershipClaim } from '../types';
 
-export interface DreamQueryParams {
+export interface AppQueryParams {
     skip?: number;
     limit?: number;
     tool_id?: number | number[];
@@ -31,53 +31,53 @@ const staticCache: {
     tools: { data: null, promise: null },
 };
 
-export const dreamService = {
-    getDreams: async (params?: DreamQueryParams): Promise<Dream[]> => {
-        const response = await api.get('/dreams/', { params });
+export const appService = {
+    getApps: async (params?: AppQueryParams): Promise<App[]> => {
+        const response = await api.get('/apps/', { params });
         return response.data;
     },
 
-    getDream: async (id: number | string): Promise<Dream> => {
-        const response = await api.get(`/dreams/${id}`);
+    getApp: async (id: number | string): Promise<App> => {
+        const response = await api.get(`/apps/${id}`);
         return response.data;
     },
 
-    createDream: async (dream: DreamCreate): Promise<Dream> => {
-        const response = await api.post('/dreams/', dream);
+    createApp: async (app: AppCreate): Promise<App> => {
+        const response = await api.post('/apps/', app);
         return response.data;
     },
 
-    updateDream: async (id: number, dream: Partial<DreamCreate>): Promise<Dream> => {
-        const response = await api.patch(`/dreams/${id}`, dream);
+    updateApp: async (id: number, app: Partial<AppCreate>): Promise<App> => {
+        const response = await api.patch(`/apps/${id}`, app);
         return response.data;
     },
 
-    forkDream: async (id: number): Promise<Dream> => {
-        const response = await api.post(`/dreams/${id}/fork`);
+    forkApp: async (id: number): Promise<App> => {
+        const response = await api.post(`/apps/${id}/fork`);
         return response.data;
     },
 
-    deleteDream: async (id: number): Promise<void> => {
-        await api.delete(`/dreams/${id}`);
+    deleteApp: async (id: number): Promise<void> => {
+        await api.delete(`/apps/${id}`);
     },
 
     // Like endpoints
-    likeDream: async (id: number): Promise<void> => {
-        await api.post(`/dreams/${id}/like`);
+    likeApp: async (id: number): Promise<void> => {
+        await api.post(`/apps/${id}/like`);
     },
 
-    unlikeDream: async (id: number): Promise<void> => {
-        await api.delete(`/dreams/${id}/like`);
+    unlikeApp: async (id: number): Promise<void> => {
+        await api.delete(`/apps/${id}/like`);
     },
 
     // Comment endpoints
-    getComments: async (dreamId: number): Promise<Comment[]> => {
-        const response = await api.get(`/dreams/${dreamId}/comments`);
+    getComments: async (appId: number): Promise<Comment[]> => {
+        const response = await api.get(`/apps/${appId}/comments`);
         return response.data;
     },
 
-    createComment: async (dreamId: number, comment: CommentCreate): Promise<Comment> => {
-        const response = await api.post(`/dreams/${dreamId}/comments`, comment);
+    createComment: async (appId: number, comment: CommentCreate): Promise<Comment> => {
+        const response = await api.post(`/apps/${appId}/comments`, comment);
         return response.data;
     },
 
@@ -132,13 +132,13 @@ export const dreamService = {
     },
 
     // Ownership Claim endpoints
-    claimOwnership: async (dreamId: number, message?: string): Promise<OwnershipClaim> => {
-        const response = await api.post(`/dreams/${dreamId}/claim-ownership`, { message });
+    claimOwnership: async (appId: number, message?: string): Promise<OwnershipClaim> => {
+        const response = await api.post(`/apps/${appId}/claim-ownership`, { message });
         return response.data;
     },
 
-    getDreamClaims: async (dreamId: number): Promise<OwnershipClaim[]> => {
-        const response = await api.get(`/dreams/${dreamId}/ownership-claims`);
+    getAppClaims: async (appId: number): Promise<OwnershipClaim[]> => {
+        const response = await api.get(`/apps/${appId}/ownership-claims`);
         return response.data;
     },
 

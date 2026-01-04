@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '~/contexts/AuthContext';
 import api from '~/lib/api';
 
-interface DreamCommentsProps {
-    dreamId: number;
+interface AppCommentsProps {
+    appId: number;
     comments: Comment[];
     onRefresh: () => Promise<void>;
 }
@@ -31,7 +31,7 @@ function formatRelativeTime(dateString: string): string {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default function DreamComments({ dreamId, comments, onRefresh }: DreamCommentsProps) {
+export default function AppComments({ appId, comments, onRefresh }: AppCommentsProps) {
     const { user, isAuthenticated } = useAuth();
     const [newComment, setNewComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -71,7 +71,7 @@ export default function DreamComments({ dreamId, comments, onRefresh }: DreamCom
 
         setSubmitting(true);
         try {
-            await api.post(`/dreams/${dreamId}/comments`, { content: newComment.trim() });
+            await api.post(`/apps/${appId}/comments`, { content: newComment.trim() });
             setNewComment('');
             await onRefresh();
         } catch (error) {
@@ -102,7 +102,7 @@ export default function DreamComments({ dreamId, comments, onRefresh }: DreamCom
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
                             className="w-full bg-white dark:bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-transparent text-sm min-h-[80px] resize-none"
-                            placeholder="What do you think about this dream?"
+                            placeholder="What do you think about this app?"
                         />
                         <div className="flex justify-end mt-2">
                             <button
@@ -131,7 +131,7 @@ export default function DreamComments({ dreamId, comments, onRefresh }: DreamCom
                         <CommentThread
                             key={node.id}
                             comment={node}
-                            dreamId={dreamId}
+                            appId={appId}
                             onRefresh={onRefresh}
                             depth={0}
                         />
@@ -144,12 +144,12 @@ export default function DreamComments({ dreamId, comments, onRefresh }: DreamCom
 
 interface CommentThreadProps {
     comment: CommentNode;
-    dreamId: number;
+    appId: number;
     onRefresh: () => Promise<void>;
     depth: number;
 }
 
-function CommentThread({ comment, dreamId, onRefresh, depth }: CommentThreadProps) {
+function CommentThread({ comment, appId, onRefresh, depth }: CommentThreadProps) {
     const { isAuthenticated, user } = useAuth();
     const [replying, setReplying] = useState(false);
     const [replyContent, setReplyContent] = useState('');
@@ -242,7 +242,7 @@ function CommentThread({ comment, dreamId, onRefresh, depth }: CommentThreadProp
 
         setSubmittingReply(true);
         try {
-            await api.post(`/dreams/${dreamId}/comments`, {
+            await api.post(`/apps/${appId}/comments`, {
                 content: replyContent.trim(),
                 parent_id: comment.id
             });
@@ -441,7 +441,7 @@ function CommentThread({ comment, dreamId, onRefresh, depth }: CommentThreadProp
                                 <CommentThread
                                     key={child.id}
                                     comment={child}
-                                    dreamId={dreamId}
+                                    appId={appId}
                                     onRefresh={onRefresh}
                                     depth={depth + 1}
                                 />

@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
 from app.database import get_db
-from app.models import Collection, User, Dream, collection_dreams
+from app.models import Collection, User, App, collection_apps
 from app.schemas import schemas
 from app.routers.auth import get_current_user, get_current_user_optional
 
@@ -23,10 +23,10 @@ async def create_collection(
         is_public=col_in.is_public,
         owner_id=current_user.id
     )
-    if col_in.dream_ids:
-        result = await db.execute(select(Dream).filter(Dream.id.in_(col_in.dream_ids)))
-        dreams = result.scalars().all()
-        db_col.dreams = dreams
+    if col_in.app_ids:
+        result = await db.execute(select(App).filter(App.id.in_(col_in.app_ids)))
+        apps = result.scalars().all()
+        db_col.apps = apps
         
     db.add(db_col)
     await db.commit()
@@ -34,9 +34,9 @@ async def create_collection(
     result = await db.execute(
         select(Collection)
         .options(
-            selectinload(Collection.dreams).selectinload(Dream.tools),
-            selectinload(Collection.dreams).selectinload(Dream.tags),
-            selectinload(Collection.dreams).selectinload(Dream.media)
+            selectinload(Collection.apps).selectinload(App.tools),
+            selectinload(Collection.apps).selectinload(App.tags),
+            selectinload(Collection.apps).selectinload(App.media)
         )
         .filter(Collection.id == db_col.id)
     )
@@ -51,9 +51,9 @@ async def get_collection(
     result = await db.execute(
         select(Collection)
         .options(
-            selectinload(Collection.dreams).selectinload(Dream.tools),
-            selectinload(Collection.dreams).selectinload(Dream.tags),
-            selectinload(Collection.dreams).selectinload(Dream.media)
+            selectinload(Collection.apps).selectinload(App.tools),
+            selectinload(Collection.apps).selectinload(App.tags),
+            selectinload(Collection.apps).selectinload(App.media)
         )
         .filter(Collection.id == col_id)
     )
@@ -67,29 +67,29 @@ async def get_collection(
             
     return col
 
-@router.post("/{col_id}/dreams/{dream_id}")
+@router.post("/{col_id}/apps/{app_id}")
 async def add_to_collection(
     col_id: int,
-    dream_id: int,
+    app_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
         select(Collection)
-        .options(selectinload(Collection.dreams))
+        .options(selectinload(Collection.apps))
         .filter(Collection.id == col_id, Collection.owner_id == current_user.id)
     )
     col = result.scalars().first()
     if not col:
         raise HTTPException(status_code=404, detail="Collection not found")
     
-    result = await db.execute(select(Dream).filter(Dream.id == dream_id))
-    dream = result.scalars().first()
-    if not dream:
-        raise HTTPException(status_code=404, detail="Dream not found")
+    result = await db.execute(select(App).filter(App.id == app_id))
+    app = result.scalars().first()
+    if not app:
+        raise HTTPException(status_code=404, detail="App not found")
     
-    if dream not in col.dreams:
-        col.dreams.append(dream)
+    if app not in col.apps:
+        col.apps.append(app)
         db.add(col)
         await db.commit()
         

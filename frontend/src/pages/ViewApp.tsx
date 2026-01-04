@@ -1,16 +1,16 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { dreamService } from '~/lib/services/dream-service';
-import type { Dream, Comment } from '~/lib/types';
+import { appService } from '~/lib/services/app-service';
+import type { App, Comment } from '~/lib/types';
 import { Header } from '~/components/layout';
 import {
-    DreamMediaGallery,
-    DreamActionPanel,
-    DreamComments,
-    DreamPromptSection,
-    DreamTools,
+    AppMediaGallery,
+    AppActionPanel,
+    AppComments,
+    AppPromptSection,
+    AppTools,
     ClaimOwnershipModal,
-} from '~/components/dreams';
+} from '~/components/apps';
 import { Breadcrumbs } from '~/components/common/Breadcrumbs';
 import DeleteConfirmModal from '~/components/common/DeleteConfirmModal';
 import { useSEO } from '~/lib/hooks/useSEO';
@@ -22,7 +22,7 @@ function formatDate(dateString: string): string {
 }
 
 // Skeleton component for loading state
-function DreamSkeleton() {
+function AppSkeleton() {
     return (
         <div className="min-h-screen bg-[var(--background)]">
             <Header />
@@ -72,15 +72,15 @@ function DreamSkeleton() {
 }
 
 // Not Found component
-function DreamNotFound() {
+function AppNotFound() {
     return (
         <div className="min-h-screen bg-[var(--background)]">
             <Header />
             <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 md:px-8 lg:px-12 py-8">
                 <div className="text-center py-20">
                     <span className="material-symbols-outlined text-6xl text-gray-400 mb-4">cloud_off</span>
-                    <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2">Dream not found</h1>
-                    <p className="text-gray-500 mb-6">The dream you're looking for doesn't exist or has been removed.</p>
+                    <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2">App not found</h1>
+                    <p className="text-gray-500 mb-6">The app you're looking for doesn't exist or has been removed.</p>
                     <Link to="/" className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary-dark transition-colors">
                         <span className="material-symbols-outlined">arrow_back</span>
                         Back to Home
@@ -91,10 +91,10 @@ function DreamNotFound() {
     );
 }
 
-export default function ViewDream() {
+export default function ViewApp() {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
-    const [dream, setDream] = useState<Dream | null>(null);
+    const [app, setApp] = useState<App | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
     const [loading, setLoading] = useState(true);
     const [isLiked, setIsLiked] = useState(false);
@@ -105,25 +105,25 @@ export default function ViewDream() {
     const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // SEO - Dynamic dream page with social sharing meta tags
+    // SEO - Dynamic app page with social sharing meta tags
     useSEO({
-        title: dream?.title || 'Dream',
-        description: dream?.prompt_text || 'Discover this AI-powered creation on Dreamware.',
-        image: dream?.media?.[0]?.media_url || undefined,
-        url: `/dreams/${slug}`,
+        title: app?.title || 'App',
+        description: app?.prompt_text || 'Discover this AI-powered creation on Show Your App.',
+        image: app?.media?.[0]?.media_url || undefined,
+        url: `/apps/${slug}`,
         type: 'article',
     });
 
-    const fetchDream = useCallback(async () => {
-        // ... (fetchDream logic remains same)
+    const fetchApp = useCallback(async () => {
+        // ... (fetchApp logic remains same)
         if (!slug) return;
         try {
-            const dreamData = await dreamService.getDream(slug);
-            setDream(dreamData);
-            setLikesCount(dreamData.likes_count || 0);
-            setIsLiked(!!dreamData.is_liked);
+            const appData = await appService.getApp(slug);
+            setApp(appData);
+            setLikesCount(appData.likes_count || 0);
+            setIsLiked(!!appData.is_liked);
 
-            const commentsData = await dreamService.getComments(dreamData.id);
+            const commentsData = await appService.getComments(appData.id);
             setComments(commentsData);
         } catch (err) {
             console.error(err);
@@ -133,18 +133,18 @@ export default function ViewDream() {
     }, [slug]);
 
     useEffect(() => {
-        fetchDream();
-    }, [fetchDream]);
+        fetchApp();
+    }, [fetchApp]);
 
     const handleLike = async () => {
         // ... (handleLike logic remains same)
-        if (!dream) return;
+        if (!app) return;
         try {
             if (isLiked) {
-                await dreamService.unlikeDream(dream.id);
+                await appService.unlikeApp(app.id);
                 setLikesCount((prev) => prev - 1);
             } else {
-                await dreamService.likeDream(dream.id);
+                await appService.likeApp(app.id);
                 setLikesCount((prev) => prev + 1);
             }
             setIsLiked(!isLiked);
@@ -159,7 +159,7 @@ export default function ViewDream() {
         if (navigator.share) {
             try {
                 await navigator.share({
-                    title: dream?.title || 'Check out this Dream',
+                    title: app?.title || 'Check out this App',
                     url,
                 });
             } catch (err) {
@@ -176,22 +176,22 @@ export default function ViewDream() {
     };
 
     const handleDelete = async () => {
-        if (!dream) return;
+        if (!app) return;
         setIsDeleting(true);
         try {
-            await dreamService.deleteDream(dream.id);
+            await appService.deleteApp(app.id);
             setIsDeleteModalOpen(false);
             navigate('/', { replace: true });
         } catch (err) {
-            console.error('Failed to delete dream:', err);
-            alert('Failed to delete dream. Please try again.');
+            console.error('Failed to delete app:', err);
+            alert('Failed to delete app. Please try again.');
         } finally {
             setIsDeleting(false);
         }
     };
 
-    if (loading) return <DreamSkeleton />;
-    if (!dream) return <DreamNotFound />;
+    if (loading) return <AppSkeleton />;
+    if (!app) return <AppNotFound />;
 
     return (
         <div className="min-h-screen bg-[var(--background)] flex flex-col">
@@ -202,41 +202,41 @@ export default function ViewDream() {
                 <Breadcrumbs
                     items={[
                         { label: 'Home', to: '/' },
-                        ...(dream.tags && dream.tags.length > 0 ? [{
-                            label: dream.tags[0].name,
-                            to: `/?tag_id=${dream.tags[0].id}`
+                        ...(app.tags && app.tags.length > 0 ? [{
+                            label: app.tags[0].name,
+                            to: `/?tag_id=${app.tags[0].id}`
                         }] : []),
-                        { label: dream.title }
+                        { label: app.title }
                     ]}
                 />
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                     <div className="lg:col-span-8 flex flex-col gap-10">
-                        <DreamMediaGallery
-                            media={dream.media}
-                            youtubeUrl={dream.youtube_url}
-                            title={dream.title}
+                        <AppMediaGallery
+                            media={app.media}
+                            youtubeUrl={app.youtube_url}
+                            title={app.title}
                         />
 
                         <section className="border-b border-[var(--border)] pb-8">
                             <h1 className="text-4xl md:text-5xl font-black text-[var(--foreground)] tracking-tight mb-3">
-                                {dream.title}
+                                {app.title}
                             </h1>
                             <div className="flex flex-wrap items-center gap-4 text-gray-500 dark:text-gray-400">
                                 <div className="flex items-center gap-1.5">
                                     <span className="material-symbols-outlined text-lg">calendar_today</span>
-                                    <span className="text-sm">Created {formatDate(dream.created_at)}</span>
+                                    <span className="text-sm">Created {formatDate(app.created_at)}</span>
                                 </div>
-                                {dream.tags && dream.tags.length > 0 && (
+                                {app.tags && app.tags.length > 0 && (
                                     <>
                                         <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
                                         <div className="flex items-center gap-1.5">
                                             <span className="material-symbols-outlined text-lg">category</span>
-                                            <span className="text-sm">{dream.tags[0].name}</span>
+                                            <span className="text-sm">{app.tags[0].name}</span>
                                         </div>
                                     </>
                                 )}
-                                {dream.is_agent_submitted && (
+                                {app.is_agent_submitted && (
                                     <>
                                         <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
                                         <div className="flex items-center gap-1.5 text-primary">
@@ -245,7 +245,7 @@ export default function ViewDream() {
                                         </div>
                                     </>
                                 )}
-                                {dream.is_owner && (
+                                {app.is_owner && (
                                     <>
                                         <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
                                         <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
@@ -257,7 +257,7 @@ export default function ViewDream() {
                             </div>
                         </section>
 
-                        {dream.prd_text && (
+                        {app.prd_text && (
                             <section>
                                 <h3 className="text-2xl font-bold text-[var(--foreground)] mb-4 flex items-center gap-2">
                                     <span className="material-symbols-outlined text-primary">auto_stories</span>
@@ -265,29 +265,29 @@ export default function ViewDream() {
                                 </h3>
                                 <div
                                     className="tiptap-editor prose prose-lg dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed"
-                                    dangerouslySetInnerHTML={{ __html: dream.prd_text }}
+                                    dangerouslySetInnerHTML={{ __html: app.prd_text }}
                                 />
                             </section>
                         )}
 
-                        {dream.prompt_text && (
-                            <DreamPromptSection promptText={dream.prompt_text} />
+                        {app.prompt_text && (
+                            <AppPromptSection promptText={app.prompt_text} />
                         )}
 
-                        {dream.tools && dream.tools.length > 0 && (
-                            <DreamTools tools={dream.tools} />
+                        {app.tools && app.tools.length > 0 && (
+                            <AppTools tools={app.tools} />
                         )}
 
-                        <DreamComments
-                            dreamId={dream.id}
+                        <AppComments
+                            appId={app.id}
                             comments={comments}
-                            onRefresh={fetchDream}
+                            onRefresh={fetchApp}
                         />
                     </div>
 
                     <div className="lg:col-span-4 relative">
-                        <DreamActionPanel
-                            dream={dream}
+                        <AppActionPanel
+                            app={app}
                             likesCount={likesCount}
                             isLiked={isLiked}
                             onLike={handleLike}
@@ -309,11 +309,11 @@ export default function ViewDream() {
             <ClaimOwnershipModal
                 isOpen={isClaimModalOpen}
                 onClose={() => setIsClaimModalOpen(false)}
-                dreamId={dream.id}
-                dreamTitle={dream.title}
+                appId={app.id}
+                appTitle={app.title}
                 onSuccess={() => {
                     alert('Ownership claim submitted successfully!');
-                    fetchDream();
+                    fetchApp();
                 }}
             />
         </div>

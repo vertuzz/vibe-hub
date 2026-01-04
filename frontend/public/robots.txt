@@ -1,7 +1,7 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://dreamware.dev/sitemap.xml
+Sitemap: https://show-your.app/sitemap.xml
 
 # Disallow admin and private routes
 Disallow: /admin/

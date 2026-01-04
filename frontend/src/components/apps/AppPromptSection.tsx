@@ -1,10 +1,10 @@
 import { useState } from 'react';
 
-interface DreamPromptSectionProps {
+interface AppPromptSectionProps {
     promptText: string;
 }
 
-export default function DreamPromptSection({ promptText }: DreamPromptSectionProps) {
+export default function AppPromptSection({ promptText }: AppPromptSectionProps) {
     const [copySuccess, setCopySuccess] = useState(false);
 
     const handleCopy = async () => {

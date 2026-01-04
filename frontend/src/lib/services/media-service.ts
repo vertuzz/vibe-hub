@@ -31,13 +31,13 @@ export const mediaService = {
         });
     },
 
-    linkMediaToDream: async (dreamId: number, mediaUrl: string): Promise<void> => {
-        await api.post(`/dreams/${dreamId}/media`, {
+    linkMediaToApp: async (appId: number, mediaUrl: string): Promise<void> => {
+        await api.post(`/apps/${appId}/media`, {
             media_url: mediaUrl
         });
     },
 
-    deleteMedia: async (dreamId: number, mediaId: number): Promise<void> => {
-        await api.delete(`/dreams/${dreamId}/media/${mediaId}`);
+    deleteMedia: async (appId: number, mediaId: number): Promise<void> => {
+        await api.delete(`/apps/${appId}/media/${mediaId}`);
     }
 };
