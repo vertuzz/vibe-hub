@@ -92,10 +92,11 @@ export default function Header({ onSearch }: HeaderProps) {
           {/* CTA Button */}
           <Link
             to={isLoggedIn ? "/apps/create" : "/login"}
-            className="hidden sm:flex items-center justify-center gap-2 h-10 px-5 bg-primary hover:bg-primary-dark text-white text-sm font-bold rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-3 sm:px-5 bg-primary hover:bg-primary-dark text-white text-xs sm:text-sm font-bold rounded-lg sm:rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
           >
-            <span className="material-symbols-outlined text-[20px]">add</span>
-            <span>Submit an App</span>
+            <span className="material-symbols-outlined text-[18px] sm:text-[20px]">add</span>
+            <span className="hidden xs:inline">Submit</span>
+            <span className="hidden sm:inline"> an App</span>
           </Link>
 
           {/* User Profile */}

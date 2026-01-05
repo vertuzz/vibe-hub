@@ -345,8 +345,8 @@ export default function Home() {
                 </div>
 
                 {/* Filters & Sort */}
-                <div className="sticky top-[72px] z-40 bg-[var(--background)]/95 backdrop-blur-sm py-4 mb-8 flex items-center justify-between gap-4 border-b border-gray-200 dark:border-gray-800">
-                    <div className="flex items-center gap-3">
+                <div className="sticky top-[72px] z-40 bg-[var(--background)]/95 backdrop-blur-sm py-4 mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 border-b border-gray-200 dark:border-gray-800">
+                    <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide pb-1 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0">
                         <FilterBar
                             tags={tags}
                             tools={tools}
@@ -410,10 +410,10 @@ export default function Home() {
                     </div>
 
                     {/* Sort Dropdown */}
-                    <div className="relative">
+                    <div className="relative flex-shrink-0 self-end sm:self-auto">
                         <button
                             onClick={() => setShowSortDropdown(!showSortDropdown)}
-                            className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-primary transition-colors whitespace-nowrap"
+                            className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-primary transition-colors whitespace-nowrap"
                         >
                             <span className="material-symbols-outlined">sort</span>
                             <span>Sort by: {sortLabels[sortBy] || 'Trending'}</span>

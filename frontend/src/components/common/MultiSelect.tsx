@@ -89,20 +89,20 @@ export default function MultiSelect({
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold transition-all border
+                className={`flex h-9 sm:h-10 items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl px-2.5 sm:px-4 text-xs sm:text-sm font-semibold transition-all border whitespace-nowrap
                     ${isOpen || selectedIds.length > 0
                         ? theme.buttonActive
                         : `bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 ${theme.buttonInactive}`
                     }`}
             >
-                <span className="material-symbols-outlined text-[20px]">{icon}</span>
+                <span className="material-symbols-outlined text-[18px] sm:text-[20px]">{icon}</span>
                 <span>{label}</span>
                 {selectedIds.length > 0 && (
-                    <span className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-bold text-white ${theme.badge}`}>
+                    <span className={`flex h-4 sm:h-5 min-w-[16px] sm:min-w-[20px] items-center justify-center rounded-full px-1 sm:px-1.5 text-[10px] sm:text-[11px] font-bold text-white ${theme.badge}`}>
                         {selectedIds.length}
                     </span>
                 )}
-                <span className="material-symbols-outlined text-[18px]">
+                <span className="material-symbols-outlined text-[16px] sm:text-[18px]">
                     {isOpen ? 'expand_less' : 'expand_more'}
                 </span>
             </button>
