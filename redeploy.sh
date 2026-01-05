@@ -32,13 +32,19 @@ done
 
 echo "=== Redeploying Vibe Hub ==="
 
-# Sync files
+# Sync files (excluding local .env files)
 echo "Syncing files..."
 rsync -az --delete \
     --exclude 'node_modules' --exclude '.venv' --exclude '__pycache__' \
-    --exclude '.git' --exclude '*.pyc' --exclude '.env' \
+    --exclude '.git' --exclude '*.pyc' --exclude 'backend/.env' --exclude 'frontend/.env' \
     --exclude 'vibe_hub.db' --exclude '.pytest_cache' --exclude 'dist' \
     ./ $SERVER:$APP_DIR/
+
+# Sync .env.production to server's .env (docker-compose uses .env by default)
+if [[ -f ".env.production" ]]; then
+    echo "Syncing .env.production -> .env on server..."
+    rsync -az .env.production $SERVER:$APP_DIR/.env
+fi
 
 # Build options
 BUILD_OPTS=""

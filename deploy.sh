@@ -33,7 +33,7 @@ echo "Copying files..."
 ssh $SERVER "mkdir -p $APP_DIR"
 rsync -az --delete \
     --exclude 'node_modules' --exclude '.venv' --exclude '__pycache__' \
-    --exclude '.git' --exclude '*.pyc' --exclude '.env' \
+    --exclude '.git' --exclude '*.pyc' --exclude 'backend/.env' --exclude 'frontend/.env' \
     --exclude 'vibe_hub.db' --exclude '.pytest_cache' --exclude 'dist' \
     ./ $SERVER:$APP_DIR/
 scp .env.production $SERVER:$APP_DIR/.env
