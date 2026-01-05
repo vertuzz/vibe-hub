@@ -138,6 +138,11 @@ export default function ViewApp() {
         fetchApp();
     }, [fetchApp]);
 
+    // Scroll to top when navigating to this page
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [slug]);
+
     const handleLike = async () => {
         // ... (handleLike logic remains same)
         if (!app) return;
