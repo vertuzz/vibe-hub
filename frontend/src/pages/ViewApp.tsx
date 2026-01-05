@@ -260,6 +260,20 @@ export default function ViewApp() {
                             </div>
                         </section>
 
+                        {/* Mobile Action Panel - shown only on mobile, before content sections */}
+                        <div className="lg:hidden">
+                            <AppActionPanel
+                                app={app}
+                                likesCount={likesCount}
+                                isLiked={isLiked}
+                                onLike={handleLike}
+                                onShare={handleShare}
+                                onDelete={() => setIsDeleteModalOpen(true)}
+                                onClaim={() => setIsClaimModalOpen(true)}
+                                onReportDead={() => setIsReportDeadModalOpen(true)}
+                            />
+                        </div>
+
                         {app.prd_text && (
                             <section>
                                 <h3 className="text-2xl font-bold text-[var(--foreground)] mb-4 flex items-center gap-2">
@@ -288,7 +302,8 @@ export default function ViewApp() {
                         />
                     </div>
 
-                    <div className="lg:col-span-4 relative">
+                    {/* Desktop Action Panel - shown only on desktop in sidebar */}
+                    <div className="hidden lg:block lg:col-span-4 relative">
                         <AppActionPanel
                             app={app}
                             likesCount={likesCount}
