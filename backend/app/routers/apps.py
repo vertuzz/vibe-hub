@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, func, distinct
 from sqlalchemy.orm import selectinload
@@ -61,6 +61,7 @@ def app_to_schema(
 
 @router.get("/", response_model=List[schemas.App])
 async def get_apps(
+    response: Response,
     skip: int = 0,
     limit: int = 20,
     tool_id: Optional[List[int]] = Query(None),
@@ -76,6 +77,17 @@ async def get_apps(
     current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db)
 ):
+    # Query for the newest app ID (efficient single-row query for polling)
+    newest_result = await db.execute(
+        select(App.id)
+        .filter(App.is_dead == False)
+        .order_by(desc(App.created_at), desc(App.id))
+        .limit(1)
+    )
+    newest_app_id = newest_result.scalar()
+    if newest_app_id:
+        response.headers["X-Newest-App-Id"] = str(newest_app_id)
+    
     # Base query with eager loading of media, tools, tags and creator
     query = select(App).options(
         selectinload(App.tools), 

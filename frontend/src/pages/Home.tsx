@@ -6,8 +6,11 @@ import AppCard from '~/components/apps/AppCard';
 import AppCardSkeleton from '~/components/apps/AppCardSkeleton';
 import FilterBar from '~/components/apps/FilterBar';
 import Header from '~/components/layout/Header';
+import NewPostsBanner from '~/components/common/NewPostsBanner';
 import { useAppCache } from '~/contexts/AppCacheContext';
 import { useSEO } from '~/lib/hooks/useSEO';
+
+const NEW_POSTS_POLL_INTERVAL = 60000; // 60 seconds
 
 type SortOption = 'trending' | 'newest' | 'top_rated' | 'likes';
 
@@ -64,6 +67,8 @@ export default function Home() {
     const [showSortDropdown, setShowSortDropdown] = useState(false);
     const [cacheRestored, setCacheRestored] = useState(false);
     const [hasMounted, setHasMounted] = useState(false);
+    const [hasNewPosts, setHasNewPosts] = useState(false);
+    const [newestAppId, setNewestAppId] = useState<number | null>(null);
     const itemsPerPage = 20;
 
     // Ref for scroll restoration
@@ -145,10 +150,14 @@ export default function Home() {
                 params.status = selectedStatuses[0];
             }
 
-            const data = await appService.getApps(params);
+            const { apps: data, newestAppId: newNewestId } = await appService.getApps(params);
 
             if (isInitial) {
                 setApps(data);
+                // Store the newest app ID for polling comparison
+                if (newNewestId) {
+                    setNewestAppId(newNewestId);
+                }
             } else {
                 setApps((prev) => [...prev, ...data]);
             }
@@ -191,9 +200,15 @@ export default function Home() {
             setApps(cached.apps);
             setPage(cached.page);
             setHasMore(cached.hasMore);
+            if (cached.newestAppId) {
+                setNewestAppId(cached.newestAppId);
+            }
             pendingScrollRestore.current = cached.scrollPosition;
             setLoading(false);
             setCacheRestored(true);
+            
+            // Check for new posts when returning from cache
+            checkForNewPosts(cached.newestAppId);
         } else {
             fetchApps(true);
         }
@@ -259,10 +274,61 @@ export default function Home() {
                 hasMore,
                 scrollPosition: window.scrollY,
                 paramsKey,
+                newestAppId,
             });
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [apps, page, hasMore, saveCache]);
+    }, [apps, page, hasMore, saveCache, newestAppId]);
+
+    // Check for new posts (used on cache restore and by polling)
+    const checkForNewPosts = useCallback(async (cachedNewestId: number | null) => {
+        if (!cachedNewestId) return;
+        
+        try {
+            const { newestAppId: currentNewestId } = await appService.getApps({ limit: 1, sort_by: 'newest' });
+            if (currentNewestId && currentNewestId > cachedNewestId) {
+                setHasNewPosts(true);
+            }
+        } catch (err) {
+            console.error('Failed to check for new posts:', err);
+        }
+    }, []);
+
+    // Poll for new posts every 60 seconds (paused when tab is hidden or hasNewPosts is true)
+    useEffect(() => {
+        if (!hasMounted || !newestAppId || hasNewPosts) return;
+
+        const pollForNewPosts = async () => {
+            // Skip polling if tab is hidden (battery/performance optimization)
+            if (document.hidden) return;
+            
+            await checkForNewPosts(newestAppId);
+        };
+
+        const intervalId = setInterval(pollForNewPosts, NEW_POSTS_POLL_INTERVAL);
+
+        // Also check when tab becomes visible again
+        const handleVisibilityChange = () => {
+            if (!document.hidden && newestAppId && !hasNewPosts) {
+                checkForNewPosts(newestAppId);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(intervalId);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [hasMounted, newestAppId, hasNewPosts, checkForNewPosts]);
+
+    // Handle refresh when user clicks the "New posts available" banner
+    const handleRefreshNewPosts = useCallback(() => {
+        setHasNewPosts(false);
+        setPage(1);
+        setHasMore(true);
+        fetchApps(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [fetchApps]);
 
     const handleFilterChange = (selected: { tagIds: number[]; toolIds: number[]; statuses: App['status'][] }) => {
         setCacheRestored(false); // Reset flag so filters work
@@ -326,6 +392,9 @@ export default function Home() {
 
     return (
         <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+            {/* New Posts Banner */}
+            {hasNewPosts && <NewPostsBanner onRefresh={handleRefreshNewPosts} />}
+
             {/* Header */}
             <Header onSearch={handleSearch} />
 

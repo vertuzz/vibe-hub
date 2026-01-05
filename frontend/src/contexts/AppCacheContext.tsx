@@ -7,6 +7,7 @@ interface AppCacheState {
     hasMore: boolean;
     scrollPosition: number;
     paramsKey: string; // Unique key to validate cache (serialized URL params)
+    newestAppId: number | null; // ID of newest app at time of last fetch (for new posts detection)
 }
 
 interface AppCacheContextType {

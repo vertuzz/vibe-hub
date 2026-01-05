@@ -32,10 +32,19 @@ const staticCache: {
     tools: { data: null, promise: null },
 };
 
+export interface AppsResponse {
+    apps: App[];
+    newestAppId: number | null;
+}
+
 export const appService = {
-    getApps: async (params?: AppQueryParams): Promise<App[]> => {
+    getApps: async (params?: AppQueryParams): Promise<AppsResponse> => {
         const response = await api.get('/apps/', { params });
-        return Array.isArray(response.data) ? response.data : [];
+        const newestAppIdHeader = response.headers['x-newest-app-id'];
+        return {
+            apps: Array.isArray(response.data) ? response.data : [],
+            newestAppId: newestAppIdHeader ? parseInt(newestAppIdHeader, 10) : null,
+        };
     },
 
     getApp: async (id: number | string): Promise<App> => {

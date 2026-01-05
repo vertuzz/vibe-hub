@@ -49,12 +49,12 @@ export default function Profile() {
         const fetchUserApps = async () => {
             if (user?.id) {
                 try {
-                    const [userApps, userLikedApps] = await Promise.all([
+                    const [userAppsResponse, userLikedAppsResponse] = await Promise.all([
                         appService.getApps({ creator_id: user.id }),
                         appService.getApps({ liked_by_user_id: user.id })
                     ]);
-                    setApps(userApps);
-                    setLikedApps(userLikedApps);
+                    setApps(userAppsResponse.apps);
+                    setLikedApps(userLikedAppsResponse.apps);
                 } catch (err) {
                     console.error('Failed to fetch user apps:', err);
                 }

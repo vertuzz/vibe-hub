@@ -41,12 +41,12 @@ export default function UserPage() {
                 setUser(userData);
 
                 if (userData?.id) {
-                    const [userApps, userLikedApps] = await Promise.all([
+                    const [userAppsResponse, userLikedAppsResponse] = await Promise.all([
                         appService.getApps({ creator_id: userData.id }),
                         appService.getApps({ liked_by_user_id: userData.id })
                     ]);
-                    setApps(userApps);
-                    setLikedApps(userLikedApps);
+                    setApps(userAppsResponse.apps);
+                    setLikedApps(userLikedAppsResponse.apps);
                 }
             } catch (err) {
                 console.error('Failed to fetch user data:', err);
