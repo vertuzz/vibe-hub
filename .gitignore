@@ -179,3 +179,4 @@ out/
 .env.test.local
 .env.production.local
 .env.production
+submit_app_agent/.playwright-mcp/

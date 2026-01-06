@@ -170,3 +170,67 @@ uv run alembic downgrade -1
 ## License
 
 MIT
+
+## App Submission Agent
+
+An AI-powered agent that automatically creates app listings on Show Your App by visiting URLs, taking screenshots, and generating compelling descriptions.
+
+### Setup
+
+```bash
+cd submit_app_agent
+uv sync  # Install dependencies
+```
+
+### Configuration
+
+Set your API key (find it in your Show Your App profile settings):
+
+```bash
+export SHOWAPP_API_KEY="your-api-key-here"
+```
+
+Or the agent will use the default key from `config.py`.
+
+### Usage
+
+```bash
+cd submit_app_agent
+
+# Submit an app from a URL
+uv run python -m showapp "add this app https://example.com/my-app"
+
+# With verbose output (shows tool calls)
+uv run python -m showapp -v "submit https://cool-demo.vercel.app"
+
+# Test bootstrap only (shows your user info, available tools/tags, existing apps)
+uv run python -m showapp --bootstrap-only
+```
+
+### What It Does
+
+1. **Navigates** to the app URL using Playwright browser
+2. **Explores** the app and takes screenshots
+3. **Creates** a listing with title, description, tags, and tools
+4. **Uploads** screenshots to S3 and attaches them to the app
+
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `get_current_user` | Get authenticated user info |
+| `list_my_apps` | List your existing apps |
+| `get_tools` | Get available "How It Was Built" tools |
+| `get_tags` | Get available "What It's About" tags |
+| `create_app` | Create a new app listing |
+| `update_app` | Update an existing app |
+| `get_presigned_url` | Get S3 upload URL |
+| `upload_file_to_s3` | Upload screenshot to S3 |
+| `attach_media_to_app` | Attach media to app |
+
+### Running Tests
+
+```bash
+cd submit_app_agent
+uv run pytest tests/ -v
+```
