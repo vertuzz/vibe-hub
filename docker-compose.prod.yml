@@ -36,6 +36,11 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      # AI Agent (admin-only)
+      AGENT_API_BASE: ${AGENT_API_BASE:-}
+      AGENT_API_KEY: ${AGENT_API_KEY:-}
+      AGENT_MODEL: ${AGENT_MODEL:-gpt-4o}
+      AGENT_HEADLESS: ${AGENT_HEADLESS:-true}
     depends_on:
       db:
         condition: service_healthy

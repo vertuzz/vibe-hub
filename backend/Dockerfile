@@ -17,6 +17,27 @@ RUN uv sync --frozen --no-install-project --no-dev
 # Runtime stage
 FROM python:3.13-slim AS runtime
 
+# Install Playwright dependencies (Chromium requires these system libs)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libdbus-1-3 \
+    libxkbcommon0 \
+    libatspi2.0-0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpango-1.0-0 \
+    libcairo2 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create non-root user for security
 RUN groupadd --gid 1000 appgroup && \
     useradd --uid 1000 --gid 1000 --shell /bin/bash --create-home appuser
@@ -28,6 +49,14 @@ COPY --from=builder /app/.venv /app/.venv
 
 # Copy application code
 COPY --chown=appuser:appgroup . .
+
+# Set Playwright browsers path to a shared location accessible by appuser
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
+
+# Install Playwright browsers to shared location and set permissions
+RUN mkdir -p /opt/playwright-browsers && \
+    /app/.venv/bin/playwright install chromium && \
+    chown -R appuser:appgroup /opt/playwright-browsers
 
 # Set environment variables
 ENV PATH="/app/.venv/bin:$PATH"
