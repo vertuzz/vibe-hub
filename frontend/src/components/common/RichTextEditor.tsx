@@ -1,7 +1,7 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface RichTextEditorProps {
     content: string;
@@ -34,6 +34,9 @@ function ToolbarButton({
 }
 
 export default function RichTextEditor({ content, onChange, placeholder }: RichTextEditorProps) {
+    // Track if the content change was triggered internally by the editor
+    const isInternalChange = useRef(false);
+
     const editor = useEditor({
         extensions: [
             StarterKit.configure({
@@ -56,14 +59,21 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
             },
         },
         onUpdate: ({ editor }) => {
+            isInternalChange.current = true;
             onChange(editor.getHTML());
         },
     });
 
-    // Sync external content changes
+    // Sync external content changes (e.g., initial data load)
     useEffect(() => {
+        // Skip if the change originated from the editor itself
+        if (isInternalChange.current) {
+            isInternalChange.current = false;
+            return;
+        }
+        
         if (editor && content !== editor.getHTML()) {
-            editor.commands.setContent(content);
+            editor.commands.setContent(content, false);
         }
     }, [content, editor]);
 

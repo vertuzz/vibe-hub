@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import type { App } from '~/lib/types';
 import { useAuth } from '~/contexts/AuthContext';
 import { userService } from '~/lib/services/user-service';
@@ -50,6 +50,8 @@ export default function AppActionPanel({
     onReportDead
 }: AppActionPanelProps) {
     const { user, isAuthenticated } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
     const isOwner = user?.id === app.creator_id;
     const status = statusConfig[app.status] || statusConfig.Concept;
 
@@ -156,9 +158,16 @@ export default function AppActionPanel({
                 )}
 
                 {/* Claim Ownership */}
-                {!app.is_owner && !isOwner && isAuthenticated && (
+                {!app.is_owner && !isOwner && (
                     <button
-                        onClick={onClaim}
+                        onClick={() => {
+                            if (isAuthenticated) {
+                                onClaim();
+                            } else {
+                                // Save current location and redirect to login
+                                navigate('/login', { state: { from: location.pathname } });
+                            }
+                        }}
                         className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-primary/30 text-primary font-bold text-sm hover:border-primary/60 hover:bg-primary/5 transition-all"
                     >
                         <span className="material-symbols-outlined text-[20px]">verified_user</span>

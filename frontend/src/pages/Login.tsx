@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/components/ui/card';
 import { Github } from 'lucide-react';
@@ -18,7 +18,11 @@ export default function Login() {
     const [isLoading, setIsLoading] = useState(false);
     const { loginWithGoogle, loginWithGithub, isAuthenticated } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const popupRef = useRef<Window | null>(null);
+
+    // Get the redirect path from location state (e.g., from "Claim Ownership" button)
+    const from = (location.state as { from?: string })?.from || '/';
 
     // SEO
     usePageTitle('Sign In');
@@ -26,9 +30,9 @@ export default function Login() {
     // Redirect if already authenticated
     useEffect(() => {
         if (isAuthenticated) {
-            navigate('/');
+            navigate(from, { replace: true });
         }
-    }, [isAuthenticated, navigate]);
+    }, [isAuthenticated, navigate, from]);
 
     // Listen for OAuth callback messages from popup
     useEffect(() => {
@@ -60,7 +64,7 @@ export default function Login() {
                     } else if (provider === 'github') {
                         await loginWithGithub(code);
                     }
-                    navigate('/');
+                    navigate(from, { replace: true });
                 } catch (err) {
                     console.error('OAuth login error:', err);
                     alert('Failed to complete login. Please try again.');
@@ -72,7 +76,7 @@ export default function Login() {
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [loginWithGoogle, loginWithGithub, navigate]);
+    }, [loginWithGoogle, loginWithGithub, navigate, from]);
 
     const openOAuthPopup = (url: string, provider: string) => {
         // Calculate popup position (centered)
