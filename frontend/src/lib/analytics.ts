@@ -23,8 +23,9 @@ export const isAnalyticsEnabled = (): boolean => {
 };
 
 /**
- * Initialize Google Analytics
- * Call this once when the app loads
+ * Initialize Google Analytics for SPA tracking
+ * The GA script is already loaded in index.html, this just ensures
+ * our tracking code is ready and configures SPA-specific settings
  */
 export const initializeGA = (): void => {
   if (!isAnalyticsEnabled()) {
@@ -34,28 +35,17 @@ export const initializeGA = (): void => {
     return;
   }
 
-  // Initialize dataLayer
+  // Ensure dataLayer and gtag are available (should already be from index.html)
   window.dataLayer = window.dataLayer || [];
 
-  // Define gtag function
-  window.gtag = function gtag(...args: unknown[]) {
-    window.dataLayer.push(args);
-  };
-
-  // Initialize GA
-  window.gtag("js", new Date());
-  window.gtag("config", GA_MEASUREMENT_ID, {
-    send_page_view: false, // We'll handle page views manually for SPA
-  });
-
-  // Load the GA script dynamically
-  const script = document.createElement("script");
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
-  document.head.appendChild(script);
+  if (typeof window.gtag !== "function") {
+    window.gtag = function gtag(...args: unknown[]) {
+      window.dataLayer.push(args);
+    };
+  }
 
   if (import.meta.env.DEV) {
-    console.log("[Analytics] Google Analytics initialized with ID:", GA_MEASUREMENT_ID);
+    console.log("[Analytics] Google Analytics ready with ID:", GA_MEASUREMENT_ID);
   }
 };
 
