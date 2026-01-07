@@ -131,6 +131,8 @@ async def create_app(
         counter += 1
     
     # Create app
+    # Agent-submitted apps are always marked as not owned by the submitter
+    # since admin is submitting on behalf of someone else
     app = App(
         creator_id=ctx.deps.user.id,
         title=title,
@@ -141,7 +143,7 @@ async def create_app(
         app_url=app_url,
         youtube_url=youtube_url,
         is_agent_submitted=True,
-        is_owner=True,
+        is_owner=False,
     )
     
     # Add tools
