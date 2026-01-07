@@ -29,6 +29,7 @@ dependencies = [
     "pydantic-ai>=0.0.49",
     "openai>=1.0.0",
     "playwright>=1.49.0",
+    "logfire>=2.0.0",
 ]
 
 [tool.pytest.ini_options]

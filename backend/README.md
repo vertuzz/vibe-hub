@@ -11,6 +11,7 @@ The backend for Show Your App, a visual-first aggregation platform for AI-genera
 - **Security**: [JWT](https://pyjwt.readthedocs.io/) (via `python-jose`) & `bcrypt`
 - **HTTP Client**: [httpx](https://www.python-httpx.org/) for OAuth and external API calls
 - **Media**: [S3-Compatible Storage](https://aws.amazon.com/s3/) (AWS, Hetzner, MinIO) for image storage via presigned URLs
+- **Observability**: [Logfire](https://logfire.pydantic.dev/) for Pydantic AI agent tracing
 - **Package Manager**: [uv](https://github.com/astral-sh/uv)
 - **Containerization**: Docker Compose (for local DB)
 
@@ -68,6 +69,9 @@ AGENT_API_BASE=https://api.openai.com/v1  # OpenAI-compatible endpoint
 AGENT_API_KEY=sk-...                       # API key for the LLM provider
 AGENT_MODEL=gpt-4o                         # Model name
 AGENT_HEADLESS=true                        # Browser runs headless in production
+
+# Observability (optional)
+LOGFIRE_TOKEN=                             # Logfire token for agent tracing
 ```
 
 ### 5. Database Initialization

@@ -7,6 +7,10 @@ from app.routers import (
     ownership, feedback, agent
 )
 from app.core.config import settings
+from app.core.logfire_config import configure_logfire
+
+# Initialize Logfire observability (sends data when LOGFIRE_TOKEN is set)
+configure_logfire()
 
 app = FastAPI(
     title="Show Your App API",
