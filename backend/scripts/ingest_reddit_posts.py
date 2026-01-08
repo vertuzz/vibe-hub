@@ -29,6 +29,10 @@ from app.database import AsyncSessionLocal
 from app.models import User, App
 from app.agent.agent import run_agent
 from app.agent.deps import AgentDeps
+from app.core.logfire_config import configure_logfire
+
+# Initialize Logfire for observability
+configure_logfire()
 
 
 # Configure logging
