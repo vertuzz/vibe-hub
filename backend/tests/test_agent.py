@@ -9,10 +9,12 @@ from app.agent.tools import (
     get_available_tools,
     get_available_tags,
     get_my_apps,
+    search_apps,
     create_app,
     _generate_slug,
 )
 from app.models import User, Tool, Tag, App, AppStatus
+from app.utils import normalize_url
 
 
 class MockRunContext:
@@ -113,6 +115,126 @@ class TestGetAvailableTags:
         
         assert result == [{"id": 1, "name": "AI-Powered"}]
         agent_deps.db.execute.assert_not_called()
+
+
+class TestNormalizeUrl:
+    """Tests for URL normalization utility."""
+    
+    def test_strips_https_protocol(self):
+        assert normalize_url("https://example.com") == "example.com"
+    
+    def test_strips_http_protocol(self):
+        assert normalize_url("http://example.com") == "example.com"
+    
+    def test_strips_www_prefix(self):
+        assert normalize_url("https://www.example.com") == "example.com"
+    
+    def test_removes_trailing_slash(self):
+        assert normalize_url("https://example.com/") == "example.com"
+    
+    def test_preserves_path(self):
+        assert normalize_url("https://example.com/path/to/page") == "example.com/path/to/page"
+    
+    def test_lowercases_url(self):
+        assert normalize_url("https://EXAMPLE.COM/PATH") == "example.com/path"
+    
+    def test_handles_no_protocol(self):
+        assert normalize_url("example.com/app") == "example.com/app"
+    
+    def test_preserves_query_params(self):
+        assert normalize_url("https://example.com/page?id=123") == "example.com/page?id=123"
+    
+    def test_returns_none_for_empty(self):
+        assert normalize_url("") is None
+        assert normalize_url(None) is None
+    
+    def test_complex_url(self):
+        url = "https://www.my-app.example.com/dashboard/"
+        assert normalize_url(url) == "my-app.example.com/dashboard"
+
+
+class TestSearchApps:
+    """Tests for search_apps function (platform-wide duplicate detection)."""
+    
+    @pytest.mark.asyncio
+    async def test_requires_url_or_title(self, agent_deps):
+        """Should return error if neither url nor title provided."""
+        ctx = MockRunContext(agent_deps)
+        
+        result = await search_apps(ctx, url=None, title=None)
+        
+        assert "error" in result
+        assert "Must provide either url or title" in result["error"]
+    
+    @pytest.mark.asyncio
+    async def test_search_by_url(self, agent_deps):
+        """Should search apps by normalized URL."""
+        # Create a mock app with creator
+        mock_creator = MagicMock(spec=User)
+        mock_creator.id = 2
+        mock_creator.username = "other_user"
+        
+        mock_app = MagicMock(spec=App)
+        mock_app.id = 42
+        mock_app.title = "Cool App"
+        mock_app.slug = "cool-app"
+        mock_app.status = AppStatus.LIVE
+        mock_app.app_url = "https://www.coolapp.com/"
+        mock_app.creator_id = 2
+        mock_app.creator = mock_creator
+        
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = [mock_app]
+        agent_deps.db.execute.return_value = mock_result
+        
+        ctx = MockRunContext(agent_deps)
+        result = await search_apps(ctx, url="https://coolapp.com")
+        
+        assert len(result) == 1
+        assert result[0]["id"] == 42
+        assert result[0]["title"] == "Cool App"
+        assert result[0]["app_url"] == "https://www.coolapp.com/"
+        assert result[0]["is_mine"] is False  # Different creator
+        assert result[0]["creator"]["username"] == "other_user"
+    
+    @pytest.mark.asyncio
+    async def test_search_by_title(self, agent_deps):
+        """Should search apps by title with fuzzy matching."""
+        mock_creator = MagicMock(spec=User)
+        mock_creator.id = 1  # Same as mock_user
+        mock_creator.username = "admin"
+        
+        mock_app = MagicMock(spec=App)
+        mock_app.id = 10
+        mock_app.title = "My Weather App"
+        mock_app.slug = "my-weather-app"
+        mock_app.status = AppStatus.WIP
+        mock_app.app_url = None
+        mock_app.creator_id = 1
+        mock_app.creator = mock_creator
+        
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = [mock_app]
+        agent_deps.db.execute.return_value = mock_result
+        
+        ctx = MockRunContext(agent_deps)
+        result = await search_apps(ctx, title="Weather")
+        
+        assert len(result) == 1
+        assert result[0]["title"] == "My Weather App"
+        assert result[0]["is_mine"] is True  # Same creator
+    
+    @pytest.mark.asyncio
+    async def test_search_returns_empty_list(self, agent_deps):
+        """Should return empty list when no matches found."""
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = []
+        agent_deps.db.execute.return_value = mock_result
+        
+        ctx = MockRunContext(agent_deps)
+        result = await search_apps(ctx, url="https://nonexistent.com")
+        
+        assert result == []
 
 
 class TestCreateApp:

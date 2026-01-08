@@ -6,13 +6,14 @@ from typing import Optional
 
 import httpx
 from pydantic_ai import RunContext
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 
 from app.models import App, Tool, Tag, AppMedia, AppStatus
 from app.agent.deps import AgentDeps
 from app.agent.browser import get_browser
 from app.core.config import settings
+from app.utils import normalize_url
 
 
 def _generate_slug(title: str) -> str:
@@ -78,6 +79,68 @@ async def get_my_apps(ctx: RunContext[AgentDeps]) -> list[dict]:
         for a in apps
     ]
     return ctx.deps.user_apps
+
+
+async def search_apps(
+    ctx: RunContext[AgentDeps],
+    url: Optional[str] = None,
+    title: Optional[str] = None,
+) -> list[dict]:
+    """Search for existing apps platform-wide to check for duplicates.
+    
+    Use this BEFORE creating a new app to avoid duplicates.
+    Search by URL first (most reliable), then by title as fallback.
+    
+    Args:
+        url: The app URL to search for (normalized matching - handles http/https, www variations)
+        title: The app title to search for (fuzzy matching)
+        
+    Returns:
+        List of matching apps with id, title, slug, app_url, status, and creator info.
+        Empty list if no matches found.
+    """
+    if not url and not title:
+        return {"error": "Must provide either url or title to search"}
+    
+    query = select(App).options(selectinload(App.creator))
+    
+    filters = []
+    
+    # URL-based search (normalized matching)
+    if url:
+        normalized_input = normalize_url(url)
+        if normalized_input:
+            # Match against normalized versions of stored URLs
+            filters.append(App.app_url.ilike(f"%{normalized_input}%"))
+    
+    # Title-based search (fuzzy matching)
+    if title:
+        filters.append(App.title.ilike(f"%{title}%"))
+    
+    if filters:
+        query = query.filter(or_(*filters))
+    
+    # Limit results and order by newest first
+    query = query.order_by(App.created_at.desc()).limit(20)
+    
+    result = await ctx.deps.db.execute(query)
+    apps = result.scalars().all()
+    
+    return [
+        {
+            "id": a.id,
+            "title": a.title,
+            "slug": a.slug,
+            "status": a.status.value if a.status else None,
+            "app_url": a.app_url,
+            "creator": {
+                "id": a.creator.id,
+                "username": a.creator.username,
+            } if a.creator else None,
+            "is_mine": a.creator_id == ctx.deps.user.id,
+        }
+        for a in apps
+    ]
 
 
 async def create_app(
@@ -482,6 +545,7 @@ ALL_TOOLS = [
     get_available_tools,
     get_available_tags,
     get_my_apps,
+    search_apps,
     create_app,
     update_app,
     get_presigned_url,

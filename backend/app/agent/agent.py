@@ -41,7 +41,13 @@ From both the post and your exploration, collect:
 - The live URL
 
 ### 3. Check for Duplicates
-Use get_my_apps to check if this app already exists. If so, use update_app instead.
+Use search_apps to check if this app already exists **platform-wide**:
+1. **First, search by URL** (most reliable): `search_apps(url="the-app-url.com")`
+2. **If no URL, search by title**: `search_apps(title="App Name")`
+
+If matches are found:
+- If `is_mine` is True: Use update_app to update your existing listing
+- If `is_mine` is False: The app already exists on the platform, **skip creation** and note it's a duplicate
 
 ### 4. Submit to Show Your App
 Use create_app to create the listing with:

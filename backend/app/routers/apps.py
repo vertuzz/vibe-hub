@@ -9,7 +9,7 @@ from app.database import get_db, IS_POSTGRES
 from app.models import App, User, Tool, Tag, AppMedia, AppStatus, Like, Comment, Review, DeadAppReport, ReportStatus
 from app.schemas import schemas
 from app.routers.auth import get_current_user, get_current_user_optional, require_admin
-from app.utils import slugify, generate_unique_slug
+from app.utils import slugify, generate_unique_slug, normalize_url
 
 router = APIRouter()
 
@@ -69,6 +69,7 @@ async def get_apps(
     tool: Optional[str] = None,
     tag: Optional[str] = None,
     search: Optional[str] = None,
+    app_url: Optional[str] = Query(None, description="Filter by app URL (normalized match)"),
     status: Optional[AppStatus] = None,
     creator_id: Optional[int] = None,
     liked_by_user_id: Optional[int] = None,
@@ -129,8 +130,19 @@ async def get_apps(
         query = query.filter(
             (App.title.ilike(f"%{search}%")) |
             (App.prompt_text.ilike(f"%{search}%")) | 
-            (App.prd_text.ilike(f"%{search}%"))
+            (App.prd_text.ilike(f"%{search}%")) |
+            (App.app_url.ilike(f"%{search}%"))
         )
+    
+    # Filter by normalized app_url for duplicate detection
+    if app_url:
+        normalized_input = normalize_url(app_url)
+        if normalized_input:
+            # Match apps where normalized URL contains our normalized input
+            # This handles variations like http vs https, www vs non-www
+            query = query.filter(App.app_url.isnot(None))
+            # Use ILIKE for case-insensitive partial matching on the URL
+            query = query.filter(App.app_url.ilike(f"%{normalized_input}%"))
         
     if status:
         query = query.filter(App.status == status)
