@@ -76,7 +76,7 @@ export default function AppCard({ app, aspectRatio = 'landscape', onLike }: AppC
   };
 
   return (
-    <div className="break-inside-avoid mb-6 group cursor-pointer">
+    <div className="break-inside-avoid group cursor-pointer">
       <div 
         onClick={handleCardClick}
         className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 dark:border-gray-700"

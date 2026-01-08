@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef, useLayoutEffect } from 'react';
+import { useEffect, useState, useCallback, useRef, useLayoutEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { appService, type AppQueryParams } from '~/lib/services/app-service';
 import type { App, Tag, Tool } from '~/lib/types';
@@ -38,6 +38,30 @@ function parseParams(value: string | null): string[] {
     return value.split(',').filter(Boolean);
 }
 
+// Hook to track number of columns based on screen width
+function useMasonryColumns() {
+    const getColumnCount = useCallback(() => {
+        if (typeof window === 'undefined') return 1;
+        if (window.matchMedia('(min-width: 1280px)').matches) return 4;
+        if (window.matchMedia('(min-width: 1024px)').matches) return 3;
+        if (window.matchMedia('(min-width: 640px)').matches) return 2;
+        return 1;
+    }, []);
+
+    const [columns, setColumns] = useState(getColumnCount);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setColumns(getColumnCount());
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [getColumnCount]);
+
+    return columns;
+}
+
 export default function Home() {
     const [searchParams, setSearchParams] = useSearchParams();
     const { saveCache, loadCache } = useAppCache();
@@ -70,6 +94,17 @@ export default function Home() {
     const [hasNewPosts, setHasNewPosts] = useState(false);
     const [newestAppId, setNewestAppId] = useState<number | null>(null);
     const itemsPerPage = 20;
+
+    const numColumns = useMasonryColumns();
+    
+    // Distribute apps into columns for balanced masonry layout with left-to-right filling
+    const appColumns = useMemo(() => {
+        const cols: { app: App; index: number }[][] = Array.from({ length: numColumns }, () => []);
+        apps.forEach((app, index) => {
+            cols[index % numColumns].push({ app, index });
+        });
+        return cols;
+    }, [apps, numColumns]);
 
     // Ref for scroll restoration
     const pendingScrollRestore = useRef<number | null>(null);
@@ -525,37 +560,31 @@ export default function Home() {
                     </div>
                 )}
 
-                {/* Masonry Grid */}
+                {/* Masonry Grid (Manual Column Distribution) */}
                 {apps.length > 0 && (
-                    <div className="masonry-grid pb-12">
-                        {apps.map((app, index) => {
-                            if (apps.length === index + 1) {
-                                return (
-                                    <div ref={lastAppElementRef} key={app.id}>
-                                        <AppCard
-                                            app={app}
-                                            aspectRatio={aspectRatios[index % aspectRatios.length]}
-                                            onLike={handleLike}
-                                        />
-                                    </div>
-                                );
-                            } else {
-                                return (
-                                    <AppCard
-                                        key={app.id}
-                                        app={app}
-                                        aspectRatio={aspectRatios[index % aspectRatios.length]}
-                                        onLike={handleLike}
-                                    />
-                                );
-                            }
-                        })}
+                    <div className="flex gap-6 pb-12 items-start">
+                        {appColumns.map((colItems, colIndex) => (
+                            <div key={colIndex} className="flex flex-col gap-6 flex-1 min-w-0">
+                                {colItems.map(({ app, index }) => {
+                                    const isLast = index === apps.length - 1;
+                                    return (
+                                        <div key={app.id} ref={isLast ? lastAppElementRef : undefined}>
+                                            <AppCard
+                                                app={app}
+                                                aspectRatio={aspectRatios[index % aspectRatios.length]}
+                                                onLike={handleLike}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ))}
                     </div>
                 )}
 
                 {/* Loading State */}
                 {(loading || loadingMore) && (
-                    <div className="masonry-grid pb-12">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
                         {Array.from({ length: loading ? 8 : 4 }).map((_, index) => (
                             <AppCardSkeleton key={index} />
                         ))}
