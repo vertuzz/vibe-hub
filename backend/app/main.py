@@ -4,7 +4,7 @@ from app.routers import (
     auth, users, apps, comments, reviews, 
     likes, implementations, collections, 
     follows, notifications, tools, tags, media,
-    ownership, feedback, agent
+    ownership, feedback, agent, og
 )
 from app.core.config import settings
 from app.core.logfire_config import configure_logfire
@@ -45,6 +45,7 @@ app.include_router(media.router, prefix="/media", tags=["media"])
 app.include_router(ownership.router, tags=["ownership"])
 app.include_router(feedback.router, tags=["feedback"])
 app.include_router(agent.router, tags=["agent"])
+app.include_router(og.router, prefix="/og", tags=["og"])
 
 @app.get("/")
 async def root():
