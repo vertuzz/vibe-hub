@@ -53,10 +53,9 @@ export default function MultiSelect({
 
     const theme = colors[color];
 
-    useEffect(() => {
-        if (isOpen) {
-            setSearchQuery('');
-            // Calculate dropdown position based on button position
+    const toggleOpen = () => {
+        if (!isOpen) {
+            // Calculate dropdown position immediately before opening
             if (buttonRef.current) {
                 const rect = buttonRef.current.getBoundingClientRect();
                 const viewportWidth = window.innerWidth;
@@ -77,6 +76,15 @@ export default function MultiSelect({
                     width: dropdownWidth
                 });
             }
+            setIsOpen(true);
+        } else {
+            setIsOpen(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            setSearchQuery('');
             // Small delay to allow render before focus
             setTimeout(() => {
                 searchInputRef.current?.focus();
@@ -118,7 +126,7 @@ export default function MultiSelect({
             <button
                 ref={buttonRef}
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={toggleOpen}
                 className={`flex h-9 sm:h-10 items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl px-2.5 sm:px-4 text-xs sm:text-sm font-semibold transition-all border whitespace-nowrap
                     ${isOpen || selectedIds.length > 0
                         ? theme.buttonActive
@@ -140,7 +148,7 @@ export default function MultiSelect({
             {isOpen && createPortal(
                 <div 
                     ref={dropdownRef}
-                    className="fixed z-[9999] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900 animate-in fade-in zoom-in duration-200"
+                    className="fixed z-[9999] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900"
                     style={{
                         top: dropdownPosition.top,
                         left: dropdownPosition.left,
