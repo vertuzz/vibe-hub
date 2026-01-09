@@ -1,7 +1,7 @@
 """Pydantic AI Agent for submitting apps to Show Your App."""
 
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from app.agent.deps import AgentDeps
@@ -119,10 +119,10 @@ def _create_agent() -> Agent[AgentDeps, str]:
             base_url=settings.AGENT_API_BASE,
             api_key=settings.AGENT_API_KEY,
         )
-        model = OpenAIModel(settings.AGENT_MODEL, provider=provider)
+        model = OpenAIChatModel(settings.AGENT_MODEL, provider=provider)
     else:
         # Fall back to default OpenAI (requires OPENAI_API_KEY env var)
-        model = OpenAIModel(settings.AGENT_MODEL)
+        model = OpenAIChatModel(settings.AGENT_MODEL)
     
     agent = Agent(
         model,
@@ -159,35 +159,59 @@ async def run_agent(prompt: str, deps: AgentDeps) -> dict:
     Returns:
         Dict with result text and created app IDs.
     """
+    import asyncio
     import traceback
     import logging
     
     logger = logging.getLogger(__name__)
     agent = get_agent()
     
-    try:
-        logger.info(f"Starting agent run for user {deps.user_id}")
-        result = await agent.run(prompt, deps=deps)
-        
-        # Commit any database changes
-        await deps.db.commit()
-        
-        logger.info(f"Agent run completed. Created apps: {deps.created_app_ids}")
-        
-        return {
-            "success": True,
-            "result": result.output,  # pydantic-ai uses .output not .data
-            "app_ids": deps.created_app_ids,
-        }
-    except Exception as e:
-        error_trace = traceback.format_exc()
-        logger.error(f"Agent run failed: {e}\n{error_trace}")
-        await deps.db.rollback()
-        return {
-            "success": False,
-            "error": f"{type(e).__name__}: {str(e)}\n\nTraceback:\n{error_trace}",
-            "app_ids": [],
-        }
-    finally:
-        # Cleanup browser
-        await cleanup_browser()
+    # Retry delays in seconds: 1s, 5s, 15s, 30s, 60s, 300s
+    retry_delays = [1, 5, 15, 30, 60, 300]
+    last_error = None
+    last_trace = None
+    
+    for attempt in range(len(retry_delays) + 1):  # +1 for initial attempt
+        try:
+            logger.info(f"Starting agent run for user {deps.user_id} (attempt {attempt + 1})")
+            result = await agent.run(prompt, deps=deps)
+            
+            # Commit any database changes
+            await deps.db.commit()
+            
+            logger.info(f"Agent run completed. Created apps: {deps.created_app_ids}")
+            
+            await cleanup_browser()
+            return {
+                "success": True,
+                "result": result.output,  # pydantic-ai uses .output not .data
+                "app_ids": deps.created_app_ids,
+            }
+        except Exception as e:
+            last_error = e
+            last_trace = traceback.format_exc()
+            
+            # Check if we have retries left
+            if attempt < len(retry_delays):
+                delay = retry_delays[attempt]
+                logger.warning(
+                    f"Agent run failed (attempt {attempt + 1}): {e}. "
+                    f"Retrying in {delay}s..."
+                )
+                await deps.db.rollback()
+                await asyncio.sleep(delay)
+            else:
+                # No more retries
+                logger.error(f"Agent run failed after {attempt + 1} attempts: {e}\n{last_trace}")
+                await deps.db.rollback()
+    
+    # All retries exhausted
+    await cleanup_browser()
+    return {
+        "success": False,
+        "error": f"{type(last_error).__name__}: {str(last_error)}\n\nTraceback:\n{last_trace}",
+        "app_ids": [],
+    }
+    
+    # Note: finally block removed since we need different cleanup paths
+    # Browser cleanup happens after all retries are exhausted or on success
